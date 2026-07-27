@@ -1,0 +1,23 @@
+$ git --version
+git version 2.50.1 (Apple Git-155)
+
+$ git config --global --get user.name
+Isla
+
+$ git config --global --get user.email
+[masked-email]
+
+$ git config --global --get init.defaultBranch
+
+$ git branch --show-current
+main
+
+$ git remote -v
+origin	https://github.com/IslaCodyssey/Codyssey_E1_1.git (fetch)
+origin	https://github.com/IslaCodyssey/Codyssey_E1_1.git (push)
+
+$ git config --global init.defaultBranch main
+설정 완료
+
+$ git config --global --get init.defaultBranch
+main

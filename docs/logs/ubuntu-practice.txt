@@ -1,0 +1,82 @@
+$ docker run -dit --name ubuntu-practice ubuntu:24.04 bash
+1b0e72990738d1f2b63c4cf61469876e096b2f6a8b8150bf7e34a4d9ccb5b0d5
+$ docker ps --filter name=ubuntu-practice
+CONTAINER ID   IMAGE          COMMAND   CREATED              STATUS              PORTS     NAMES
+1b0e72990738   ubuntu:24.04   "bash"    About a minute ago   Up About a minute             ubuntu-practice
+
+$ docker exec ubuntu-practice pwd
+/
+
+$ docker exec ubuntu-practice ls -la /
+total 56
+drwxr-xr-x   1 root root 4096 Jul 27 09:28 .
+drwxr-xr-x   1 root root 4096 Jul 27 09:28 ..
+-rwxr-xr-x   1 root root    0 Jul 27 09:28 .dockerenv
+lrwxrwxrwx   1 root root    7 Apr 22  2024 bin -> usr/bin
+drwxr-xr-x   2 root root 4096 Apr 22  2024 boot
+drwxr-xr-x   5 root root  360 Jul 27 09:28 dev
+drwxr-xr-x   1 root root 4096 Jul 27 09:28 etc
+drwxr-xr-x   3 root root 4096 Jun 10 02:16 home
+lrwxrwxrwx   1 root root    7 Apr 22  2024 lib -> usr/lib
+drwxr-xr-x   2 root root 4096 Jun 10 02:09 media
+drwxr-xr-x   2 root root 4096 Jun 10 02:09 mnt
+drwxr-xr-x   2 root root 4096 Jun 10 02:09 opt
+dr-xr-xr-x 216 root root    0 Jul 27 09:28 proc
+drwx------   2 root root 4096 Jun 10 02:16 root
+drwxr-xr-x   4 root root 4096 Jun 10 02:16 run
+lrwxrwxrwx   1 root root    8 Apr 22  2024 sbin -> usr/sbin
+drwxr-xr-x   2 root root 4096 Jun 10 02:09 srv
+dr-xr-xr-x  11 root root    0 Jul 27 09:28 sys
+drwxrwxrwt   2 root root 4096 Jun 10 02:16 tmp
+drwxr-xr-x  11 root root 4096 Jun 10 02:09 usr
+drwxr-xr-x  11 root root 4096 Jun 10 02:16 var
+
+$ docker exec ubuntu-practice cat /etc/os-release
+PRETTY_NAME="Ubuntu 24.04.4 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04.4 LTS (Noble Numbat)"
+VERSION_CODENAME=noble
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=noble
+LOGO=ubuntu-logo
+
+$ docker exec ubuntu-practice sh -c "echo Hello-from-Ubuntu-container > /tmp/hello.txt"
+
+$ docker exec ubuntu-practice cat /tmp/hello.txt
+Hello from Ubuntu container
+
+$ docker stats --no-stream ubuntu-practice
+CONTAINER ID   NAME              CPU %     MEM USAGE / LIMIT    MEM %     NET I/O         BLOCK I/O    PIDS
+1b0e72990738   ubuntu-practice   0.00%     1.047MiB / 7.75GiB   0.01%     1.17kB / 126B   0B / 4.1kB   1
+
+$ docker stop ubuntu-practice
+ubuntu-practice
+
+$ docker ps --filter name=ubuntu-practice
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+$ docker ps -a --filter name=ubuntu-practice
+CONTAINER ID   IMAGE          COMMAND   CREATED         STATUS                                PORTS     NAMES
+1b0e72990738   ubuntu:24.04   "bash"    5 minutes ago   Exited (137) Less than a second ago             ubuntu-practice
+
+$ docker start ubuntu-practice
+ubuntu-practice
+
+$ docker ps --filter name=ubuntu-practice
+CONTAINER ID   IMAGE          COMMAND   CREATED         STATUS          PORTS     NAMES
+1b0e72990738   ubuntu:24.04   "bash"    7 minutes ago   Up 17 seconds             ubuntu-practice
+
+$ docker exec ubuntu-practice cat /tmp/hello.txt
+Hello from Ubuntu container
+
+$ docker rm -f ubuntu-practice
+ubuntu-practice
+
+$ docker ps -a --filter name=ubuntu-practice
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES

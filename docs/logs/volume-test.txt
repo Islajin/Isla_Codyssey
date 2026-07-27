@@ -1,0 +1,61 @@
+$ docker volume create codyssey-data
+codyssey-data
+
+$ docker volume ls --filter name=codyssey-data
+DRIVER    VOLUME NAME
+local     codyssey-data
+
+$ docker run -d --name volume-test-1 -v codyssey-data:/data ubuntu:24.04 sleep infinity
+80260179987d9ff6763b468e0c375c5bc4f4ba589d93193f3f27e386a91c365b
+
+$ docker ps --filter name=volume-test-1
+CONTAINER ID   IMAGE          COMMAND            CREATED                  STATUS                  PORTS     NAMES
+80260179987d   ubuntu:24.04   "sleep infinity"   Less than a second ago   Up Less than a second             volume-test-1
+
+$ docker exec volume-test-1 sh -c "echo persistent-codyssey-data > /data/result.txt"
+
+$ docker exec volume-test-1 cat /data/result.txt
+persistent codyssey data
+
+$ docker exec volume-test-1 ls -l /data
+total 4
+-rw-r--r-- 1 root root 25 Jul 27 09:52 result.txt
+
+$ docker rm -f volume-test-1
+volume-test-1
+
+$ docker ps -a --filter name=volume-test-1
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+$ docker volume ls --filter name=codyssey-data
+DRIVER    VOLUME NAME
+local     codyssey-data
+
+$ docker run -d --name volume-test-2 -v codyssey-data:/data ubuntu:24.04 sleep infinity
+0db6825e897f720f2d2f30ea011ae0cca2c0dc419d124b0f482bb9e8bcb507bf
+
+$ docker exec volume-test-2 cat /data/result.txt
+persistent codyssey data
+
+$ docker exec volume-test-2 ls -l /data
+total 4
+-rw-r--r-- 1 root root 25 Jul 27 09:52 result.txt
+
+$ docker rm -f volume-test-2
+volume-test-2
+
+$ docker ps -a --filter name=volume-test
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+$ docker volume inspect codyssey-data
+[
+    {
+        "CreatedAt": "2026-07-27T09:51:17Z",
+        "Driver": "local",
+        "Labels": null,
+        "Mountpoint": "/var/lib/docker/volumes/codyssey-data/_data",
+        "Name": "codyssey-data",
+        "Options": null,
+        "Scope": "local"
+    }
+]

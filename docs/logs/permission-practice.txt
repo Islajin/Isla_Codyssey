@@ -1,0 +1,23 @@
+$ mkdir -p permission-practice/my-directory
+
+$ touch permission-practice/my-file.txt
+
+$ ls -ld permission-practice/my-file.txt permission-practice/my-directory
+drwxr-xr-x@ 2 yeonjin  staff  64  7월 27 18:40 permission-practice/my-directory
+-rw-r--r--@ 1 yeonjin  staff   0  7월 27 18:40 permission-practice/my-file.txt
+
+$ chmod 700 permission-practice/my-directory
+
+$ chmod 600 permission-practice/my-file.txt
+
+$ ls -ld permission-practice/my-file.txt permission-practice/my-directory
+drwx------@ 2 yeonjin  staff  64  7월 27 18:40 permission-practice/my-directory
+-rw-------@ 1 yeonjin  staff   0  7월 27 18:40 permission-practice/my-file.txt
+
+$ chmod 755 permission-practice/my-directory
+
+$ chmod 644 permission-practice/my-file.txt
+
+$ ls -ld permission-practice/my-file.txt permission-practice/my-directory
+drwxr-xr-x@ 2 yeonjin  staff  64  7월 27 18:40 permission-practice/my-directory
+-rw-r--r--@ 1 yeonjin  staff   0  7월 27 18:40 permission-practice/my-file.txt

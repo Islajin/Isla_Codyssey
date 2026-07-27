@@ -1,0 +1,56 @@
+$ pwd
+/Users/yeonjin/코디세이/Codyssey_E1_1
+
+$ mkdir -p terminal-practice/original
+
+$ ls -la
+total 0
+drwxr-xr-x@ 9 yeonjin  staff  288  7월 27 18:36 .
+drwxr-xr-x@ 4 yeonjin  staff  128  7월 27 18:00 ..
+drwxr-xr-x@ 9 yeonjin  staff  288  7월 27 18:00 .git
+-rw-r--r--@ 1 yeonjin  staff    0  7월 27 18:00 .gitignore
+-rw-r--r--@ 1 yeonjin  staff    0  7월 27 18:00 Dockerfile
+drwxr-xr-x@ 4 yeonjin  staff  128  7월 27 18:00 docs
+-rw-r--r--@ 1 yeonjin  staff    0  7월 27 18:00 README.md
+drwxr-xr-x@ 3 yeonjin  staff   96  7월 27 18:00 site
+drwxr-xr-x@ 3 yeonjin  staff   96  7월 27 18:36 terminal-practice
+
+$ touch terminal-practice/original/example.txt
+
+$ echo "Codyssey terminal practice" > terminal-practice/original/example.txt
+
+$ cat terminal-practice/original/example.txt
+Codyssey terminal practice
+
+$ ls -la terminal-practice/original
+total 8
+drwxr-xr-x@ 3 yeonjin  staff  96  7월 27 18:37 .
+drwxr-xr-x@ 3 yeonjin  staff  96  7월 27 18:36 ..
+-rw-r--r--@ 1 yeonjin  staff  27  7월 27 18:37 example.txt
+
+$ cp terminal-practice/original/example.txt terminal-practice/copied.txt
+
+$ mv terminal-practice/copied.txt terminal-practice/renamed.txt
+
+$ mkdir terminal-practice/moved
+
+$ mv terminal-practice/renamed.txt terminal-practice/moved/
+
+$ ls -la terminal-practice/moved
+total 8
+drwxr-xr-x@ 3 yeonjin  staff   96  7월 27 18:37 .
+drwxr-xr-x@ 4 yeonjin  staff  128  7월 27 18:37 ..
+-rw-r--r--@ 1 yeonjin  staff   27  7월 27 18:37 renamed.txt
+
+$ cat terminal-practice/moved/renamed.txt
+Codyssey terminal practice
+
+$ rm terminal-practice/moved/renamed.txt
+
+$ rmdir terminal-practice/moved
+
+$ ls -la terminal-practice
+total 0
+drwxr-xr-x@ 3 yeonjin  staff   96  7월 27 18:39 .
+drwxr-xr-x@ 9 yeonjin  staff  288  7월 27 18:36 ..
+drwxr-xr-x@ 3 yeonjin  staff   96  7월 27 18:37 original
