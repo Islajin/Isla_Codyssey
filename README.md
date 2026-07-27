@@ -102,7 +102,7 @@ Codyssey_E1_1/
 - [x] Git 사용자 정보와 원격 저장소 확인
 - [x] Git 전역 기본 브랜치 `main` 설정 확인
 - [x] VS Code GitHub 로그인 및 연동 화면 추가
-- [ ] 최종 커밋 및 GitHub push
+- [x] 최종 커밋 및 GitHub push
 
 ---
 
