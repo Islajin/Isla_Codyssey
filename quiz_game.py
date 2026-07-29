@@ -68,6 +68,31 @@ class QuizGame:
                 continue
             return value
 
+    # ---------- 퀴즈 풀기 ----------
+    def play_quiz(self):
+        if not self.quizzes:
+            print('\n⚠️ 등록된 퀴즈가 없습니다. 먼저 퀴즈를 추가해주세요.')
+            return
+
+        total = len(self.quizzes)
+        print(f'\n📝 퀴즈를 시작합니다! (총 {total}문제)')
+
+        correct = 0
+        for index, quiz in enumerate(self.quizzes, start=1):
+            print('-' * 40)
+            quiz.display(index)
+            answer = self.prompt_int('\n정답 입력: ', 1, 4)
+            if quiz.check_answer(answer):
+                print('✅ 정답입니다!')
+                correct += 1
+            else:
+                print(f'❌ 오답입니다. 정답은 {quiz.answer}번이었습니다.')
+
+        score = round(correct / total * 100)
+        print('\n' + '=' * 40)
+        print(f'🏆 결과: {total}문제 중 {correct}문제 정답! ({score}점)')
+        print('=' * 40)
+
     # ---------- 메뉴 ----------
     def show_menu(self):
         print('\n' + '=' * 40)
@@ -86,7 +111,7 @@ class QuizGame:
                 self.show_menu()
                 choice = self.prompt_int('선택: ', 1, 5)
                 if choice == 1:
-                    print('(퀴즈 풀기 기능은 추후 구현 예정입니다)')
+                    self.play_quiz()
                 elif choice == 2:
                     print('(퀴즈 추가 기능은 추후 구현 예정입니다)')
                 elif choice == 3:
