@@ -68,6 +68,15 @@ class QuizGame:
                 continue
             return value
 
+    @staticmethod
+    def prompt_text(prompt):
+        while True:
+            raw = input(prompt).strip()
+            if raw == '':
+                print('⚠️ 입력이 없습니다. 다시 입력하세요.')
+                continue
+            return raw
+
     # ---------- 퀴즈 풀기 ----------
     def play_quiz(self):
         if not self.quizzes:
@@ -93,6 +102,17 @@ class QuizGame:
         print(f'🏆 결과: {total}문제 중 {correct}문제 정답! ({score}점)')
         print('=' * 40)
 
+    # ---------- 퀴즈 추가 ----------
+    def add_quiz(self):
+        print('\n📌 새로운 퀴즈를 추가합니다.')
+        question = self.prompt_text('문제를 입력하세요: ')
+        choices = []
+        for i in range(1, 5):
+            choices.append(self.prompt_text(f'선택지 {i}: '))
+        answer = self.prompt_int('정답 번호 (1-4): ', 1, 4)
+        self.quizzes.append(Quiz(question, choices, answer))
+        print('\n✅ 퀴즈가 추가되었습니다!')
+
     # ---------- 메뉴 ----------
     def show_menu(self):
         print('\n' + '=' * 40)
@@ -113,7 +133,7 @@ class QuizGame:
                 if choice == 1:
                     self.play_quiz()
                 elif choice == 2:
-                    print('(퀴즈 추가 기능은 추후 구현 예정입니다)')
+                    self.add_quiz()
                 elif choice == 3:
                     print('(퀴즈 목록 기능은 추후 구현 예정입니다)')
                 elif choice == 4:
