@@ -49,6 +49,7 @@ DEFAULT_QUIZZES = [
 class QuizGame:
     def __init__(self):
         self.quizzes = [Quiz.from_dict(item) for item in DEFAULT_QUIZZES]
+        self.best_score = 0
 
     # ---------- 입력 검증 ----------
     @staticmethod
@@ -100,6 +101,9 @@ class QuizGame:
         score = round(correct / total * 100)
         print('\n' + '=' * 40)
         print(f'🏆 결과: {total}문제 중 {correct}문제 정답! ({score}점)')
+        if score > self.best_score:
+            self.best_score = score
+            print('🎉 새로운 최고 점수입니다!')
         print('=' * 40)
 
     # ---------- 퀴즈 추가 ----------
@@ -123,6 +127,13 @@ class QuizGame:
         for index, quiz in enumerate(self.quizzes, start=1):
             print(f'[{index}] {quiz.question}')
         print('-' * 40)
+
+    # ---------- 점수 확인 ----------
+    def show_score(self):
+        if self.best_score == 0:
+            print('\n⚠️ 아직 퀴즈를 푼 기록이 없습니다.')
+            return
+        print(f'\n🏆 최고 점수: {self.best_score}점')
 
     # ---------- 메뉴 ----------
     def show_menu(self):
@@ -148,7 +159,7 @@ class QuizGame:
                 elif choice == 3:
                     self.list_quizzes()
                 elif choice == 4:
-                    print('(점수 확인 기능은 추후 구현 예정입니다)')
+                    self.show_score()
                 elif choice == 5:
                     print('\n👋 게임을 종료합니다. 다음에 또 만나요!')
                     break
