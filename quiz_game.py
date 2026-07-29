@@ -1,6 +1,7 @@
 import json
 import os
 import random
+from datetime import datetime
 
 from cat_quizzes import DEFAULT_QUIZZES
 from quiz import Quiz
@@ -13,6 +14,7 @@ class QuizGame:
         self.state_file = state_file
         self.quizzes = []
         self.best_score = 0
+        self.history = []
         self.load_state()
 
     # ---------- 파일 입출력 ----------
@@ -31,6 +33,7 @@ class QuizGame:
                 raise ValueError('퀴즈 데이터가 비어 있습니다.')
             self.quizzes = quizzes
             self.best_score = data.get('best_score', 0)
+            self.history = data.get('history', [])
             print(f'📂 저장된 데이터를 불러왔습니다. (퀴즈 {len(self.quizzes)}개, 최고점수 {self.best_score}점)')
         except (json.JSONDecodeError, OSError, KeyError, TypeError, ValueError):
             print('⚠️ 저장된 데이터가 손상되어 기본 퀴즈 데이터로 초기화합니다.')
@@ -40,11 +43,13 @@ class QuizGame:
     def _load_defaults(self):
         self.quizzes = [Quiz.from_dict(item) for item in DEFAULT_QUIZZES]
         self.best_score = 0
+        self.history = []
 
     def save_state(self):
         data = {
             'quizzes': [quiz.to_dict() for quiz in self.quizzes],
             'best_score': self.best_score,
+            'history': self.history,
         }
         try:
             with open(self.state_file, 'w', encoding='utf-8') as f:
@@ -113,6 +118,13 @@ class QuizGame:
             self.best_score = score
             print('🎉 새로운 최고 점수입니다!')
         print('=' * 40)
+
+        self.history.append({
+            'datetime': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'total': count,
+            'correct': correct,
+            'score': score,
+        })
         self.save_state()
 
     def _ask_single(self, quiz):
@@ -183,10 +195,15 @@ class QuizGame:
 
     # ---------- 점수 확인 ----------
     def show_score(self):
-        if self.best_score == 0:
+        if not self.history:
             print('\n⚠️ 아직 퀴즈를 푼 기록이 없습니다.')
             return
         print(f'\n🏆 최고 점수: {self.best_score}점')
+        print(f'\n📜 전체 기록 ({len(self.history)}회)')
+        print('-' * 40)
+        for record in self.history:
+            print(f'{record["datetime"]} | {record["correct"]}/{record["total"]}문제 | {record["score"]}점')
+        print('-' * 40)
 
     # ---------- 메뉴 ----------
     def show_menu(self):

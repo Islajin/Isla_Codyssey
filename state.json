@@ -78,5 +78,13 @@
       "hint": "이름에 미국의 한 주 이름이 들어갑니다."
     }
   ],
-  "best_score": 0
+  "best_score": 33,
+  "history": [
+    {
+      "datetime": "2026-07-29 19:27:14",
+      "total": 3,
+      "correct": 1,
+      "score": 33
+    }
+  ]
 }
