@@ -1,5 +1,6 @@
 import json
 import os
+import random
 
 from cat_quizzes import DEFAULT_QUIZZES
 from quiz import Quiz
@@ -85,10 +86,12 @@ class QuizGame:
             return
 
         total = len(self.quizzes)
+        pool = self.quizzes[:]
+        random.shuffle(pool)
         print(f'\n📝 퀴즈를 시작합니다! (총 {total}문제)')
 
         correct = 0
-        for index, quiz in enumerate(self.quizzes, start=1):
+        for index, quiz in enumerate(pool, start=1):
             print('-' * 40)
             quiz.display(index)
             answer = self.prompt_int('\n정답 입력: ', 1, 4)
