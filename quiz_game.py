@@ -170,6 +170,17 @@ class QuizGame:
             print(f'[{index}] {quiz.question}')
         print('-' * 40)
 
+    # ---------- 퀴즈 삭제 ----------
+    def delete_quiz(self):
+        if not self.quizzes:
+            print('\n⚠️ 등록된 퀴즈가 없습니다.')
+            return
+        self.list_quizzes()
+        index = self.prompt_int(f'삭제할 퀴즈 번호 (1-{len(self.quizzes)}): ', 1, len(self.quizzes))
+        removed = self.quizzes.pop(index - 1)
+        self.save_state()
+        print(f'\n🗑️ 삭제되었습니다: {removed.question}')
+
     # ---------- 점수 확인 ----------
     def show_score(self):
         if self.best_score == 0:
@@ -186,14 +197,15 @@ class QuizGame:
         print('2. 퀴즈 추가')
         print('3. 퀴즈 목록')
         print('4. 점수 확인')
-        print('5. 종료')
+        print('5. 퀴즈 삭제')
+        print('6. 종료')
         print('=' * 40)
 
     def run(self):
         try:
             while True:
                 self.show_menu()
-                choice = self.prompt_int('선택: ', 1, 5)
+                choice = self.prompt_int('선택: ', 1, 6)
                 if choice == 1:
                     self.play_quiz()
                 elif choice == 2:
@@ -203,6 +215,8 @@ class QuizGame:
                 elif choice == 4:
                     self.show_score()
                 elif choice == 5:
+                    self.delete_quiz()
+                elif choice == 6:
                     self.save_state()
                     print('\n👋 게임을 종료합니다. 다음에 또 만나요!')
                     break
