@@ -97,17 +97,16 @@ class QuizGame:
         print(f'\n📝 퀴즈를 시작합니다! (총 {count}문제)')
 
         correct = 0
+        earned_points = 0.0
         for index, quiz in enumerate(pool, start=1):
             print('-' * 40)
             quiz.display(index)
-            answer = self.prompt_int('\n정답 입력: ', 1, 4)
-            if quiz.check_answer(answer):
-                print('✅ 정답입니다!')
+            is_correct, points = self._ask_single(quiz)
+            if is_correct:
                 correct += 1
-            else:
-                print(f'❌ 오답입니다. 정답은 {quiz.answer}번이었습니다.')
+            earned_points += points
 
-        score = round(correct / count * 100)
+        score = round(earned_points / count * 100)
         print('\n' + '=' * 40)
         print(f'🏆 결과: {count}문제 중 {correct}문제 정답! ({score}점)')
         if score > self.best_score:
@@ -115,6 +114,37 @@ class QuizGame:
             print('🎉 새로운 최고 점수입니다!')
         print('=' * 40)
         self.save_state()
+
+    def _ask_single(self, quiz):
+        hint_used = False
+        while True:
+            raw = input('\n정답 입력 (힌트를 보려면 h 입력): ').strip()
+            if raw.lower() == 'h':
+                print(f'💡 힌트: {quiz.hint}' if quiz.hint else '💡 이 문제에는 힌트가 없습니다.')
+                hint_used = True
+                continue
+            if raw == '':
+                print('⚠️ 입력이 없습니다. 1-4 사이의 숫자를 입력하세요.')
+                continue
+            try:
+                answer = int(raw)
+            except ValueError:
+                print('⚠️ 잘못된 입력입니다. 1-4 사이의 숫자를 입력하세요.')
+                continue
+            if not (1 <= answer <= 4):
+                print('⚠️ 잘못된 입력입니다. 1-4 사이의 숫자를 입력하세요.')
+                continue
+            break
+
+        if quiz.check_answer(answer):
+            if hint_used:
+                print('✅ 정답입니다! (힌트 사용으로 점수가 절반만 반영됩니다)')
+                return True, 0.5
+            print('✅ 정답입니다!')
+            return True, 1.0
+
+        print(f'❌ 오답입니다. 정답은 {quiz.answer}번이었습니다.')
+        return False, 0.0
 
     # ---------- 퀴즈 추가 ----------
     def add_quiz(self):
@@ -124,7 +154,8 @@ class QuizGame:
         for i in range(1, 5):
             choices.append(self.prompt_text(f'선택지 {i}: '))
         answer = self.prompt_int('정답 번호 (1-4): ', 1, 4)
-        self.quizzes.append(Quiz(question, choices, answer))
+        hint = input('힌트 (없으면 그냥 Enter): ').strip()
+        self.quizzes.append(Quiz(question, choices, answer, hint))
         self.save_state()
         print('\n✅ 퀴즈가 추가되었습니다!')
 
