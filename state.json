@@ -76,6 +76,17 @@
       ],
       "answer": 2,
       "hint": "이름에 미국의 한 주 이름이 들어갑니다."
+    },
+    {
+      "question": "고양이는귀엽나요?",
+      "choices": [
+        "네",
+        "네!!",
+        "네!!",
+        "네!"
+      ],
+      "answer": 1,
+      "hint": ""
     }
   ],
   "best_score": 33,
@@ -85,6 +96,12 @@
       "total": 3,
       "correct": 1,
       "score": 33
+    },
+    {
+      "datetime": "2026-07-29 19:40:59",
+      "total": 1,
+      "correct": 0,
+      "score": 0
     }
   ]
 }
