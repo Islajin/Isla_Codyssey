@@ -85,10 +85,16 @@ class QuizGame:
             print('\n⚠️ 등록된 퀴즈가 없습니다. 먼저 퀴즈를 추가해주세요.')
             return
 
-        total = len(self.quizzes)
+        max_count = len(self.quizzes)
+        if max_count == 1:
+            count = 1
+        else:
+            count = self.prompt_int(f'\n몇 문제를 푸시겠습니까? (1-{max_count}): ', 1, max_count)
+
         pool = self.quizzes[:]
         random.shuffle(pool)
-        print(f'\n📝 퀴즈를 시작합니다! (총 {total}문제)')
+        pool = pool[:count]
+        print(f'\n📝 퀴즈를 시작합니다! (총 {count}문제)')
 
         correct = 0
         for index, quiz in enumerate(pool, start=1):
@@ -101,9 +107,9 @@ class QuizGame:
             else:
                 print(f'❌ 오답입니다. 정답은 {quiz.answer}번이었습니다.')
 
-        score = round(correct / total * 100)
+        score = round(correct / count * 100)
         print('\n' + '=' * 40)
-        print(f'🏆 결과: {total}문제 중 {correct}문제 정답! ({score}점)')
+        print(f'🏆 결과: {count}문제 중 {correct}문제 정답! ({score}점)')
         if score > self.best_score:
             self.best_score = score
             print('🎉 새로운 최고 점수입니다!')
