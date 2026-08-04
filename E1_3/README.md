@@ -27,11 +27,84 @@ python3 main.py
 
 ## 구현 요약
 
-- **라벨 정규화**: `{'+': 'Cross', 'cross': 'Cross', 'x': 'X'}` 딕셔너리 하나로 `expected` 값(`'+'`/`'x'`)과 필터 키(`'cross'`/`'x'`)를 모두 표준 라벨(`Cross`/`X`)로 변환합니다(`normalize_label`). 콘솔 출력과 PASS/FAIL 비교는 항상 이 표준 라벨을 기준으로 합니다.
-- **MAC 연산**: `mac_score(pattern, filter_)`가 이중 for문으로 같은 위치의 값을 곱해서 누적합을 구합니다. NumPy 등 외부 라이브러리는 사용하지 않았습니다.
-- **동점 처리 정책**: `judge_label`이 `abs(score_cross - score_x) < 1e-9`이면 `UNDECIDED`를 반환합니다. 채점 규칙상 `UNDECIDED`는 expected와 무관하게 항상 FAIL로 처리됩니다.
-- **성능 측정**: `measure_avg_ms`가 MAC 연산을 10회 개별 호출해 각각 `time.perf_counter()`로 측정한 뒤 평균(ms)을 냅니다. 모드 2에서는 `data.json`에 없는 3×3 크기를 벤치마크하기 위해 내부적으로 십자가 패턴을 생성하는 `generate_cross(n)`을 사용합니다.
-- **스키마 검증**: `data.json`의 패턴 키(`size_{N}_{idx}`)에서 정규식으로 `N`을 뽑아 해당 크기의 필터가 로드됐는지, 패턴 크기가 필터 크기와 일치하는지 확인합니다. 문제가 있으면 그 케이스만 FAIL로 남기고 프로그램은 계속 진행합니다(예외를 케이스 단위로 잡아서 처리).
+### 라벨 정규화 — `normalize_label`
+
+```python
+LABEL_MAP = {'+': 'Cross', 'cross': 'Cross', 'x': 'X'}
+
+def normalize_label(raw):
+    key = str(raw).strip().lower()
+    if key not in LABEL_MAP:
+        raise ValueError(f"알 수 없는 라벨: {raw}")
+    return LABEL_MAP[key]
+```
+
+`expected` 값(`'+'`/`'x'`)과 필터 키(`'cross'`/`'x'`)는 표기만 다를 뿐 같은 개념이라, 매핑 딕셔너리 하나로 둘 다 표준 라벨(`Cross`/`X`)로 변환합니다. 콘솔 출력과 PASS/FAIL 비교는 항상 이 표준 라벨을 기준으로 합니다. 매핑에 없는 값이 들어오면 `ValueError`를 던져 호출부(모드 2 케이스 루프)가 그 케이스만 FAIL로 처리하게 합니다.
+
+### MAC 연산 — `mac_score`
+
+```python
+def mac_score(pattern, filter_):
+    total = 0.0
+    for row_p, row_f in zip(pattern, filter_):
+        for p, f in zip(row_p, row_f):
+            total += p * f
+    return total
+```
+
+이중 for문(바깥 N번 × 안쪽 N번)으로 같은 위치의 값을 곱해서 누적합을 구합니다. NumPy 등 외부 라이브러리는 사용하지 않았고, 이 이중 루프 구조가 아래 성능 분석의 O(N²) 근거이기도 합니다.
+
+### 동점 처리 정책 — `judge_label`
+
+```python
+EPSILON = 1e-9
+
+def judge_label(score_cross, score_x, eps=EPSILON):
+    if abs(score_cross - score_x) < eps:
+        return 'UNDECIDED'
+    return 'Cross' if score_cross > score_x else 'X'
+```
+
+`abs(score_cross - score_x) < 1e-9`이면 `UNDECIDED`를 반환합니다. 채점 규칙상 `UNDECIDED`는 expected와 무관하게 항상 FAIL로 처리됩니다.
+
+### 성능 측정 — `measure_avg_ms`
+
+```python
+def measure_avg_ms(func, *args, repeats=10):
+    result = None
+    total_seconds = 0.0
+    for _ in range(repeats):
+        start = time.perf_counter()
+        result = func(*args)
+        end = time.perf_counter()
+        total_seconds += (end - start)
+    avg_ms = (total_seconds / repeats) * 1000
+    return result, avg_ms
+```
+
+임의의 함수를 10회(`repeats`) 개별 호출하며 각각 `time.perf_counter()`로 측정한 뒤 평균(ms)을 냅니다. 모드 1(필터 A/B 점수 계산)과 모드 2(크기별 MAC 연산) 양쪽 성능 측정에 그대로 재사용됩니다. 모드 2에서는 `data.json`에 없는 3×3 크기를 벤치마크하기 위해 내부적으로 십자가/X 패턴을 생성하는 `generate_cross(n)` / `generate_x(n)`을 사용합니다.
+
+### 스키마 검증 — 모드 2 케이스 루프
+
+```python
+try:
+    m = re.match(r'size_(\d+)_\d+$', case_id)
+    if not m:
+        raise ValueError('케이스 키 형식이 size_{N}_{idx}가 아닙니다.')
+    n = int(m.group(1))
+    if n not in filters_by_size:
+        raise ValueError(f'size_{n} 필터가 로드되지 않았습니다.')
+    pattern_input = case['input']
+    rows, cols = len(pattern_input), len(pattern_input[0]) if pattern_input else 0
+    if rows != n or cols != n:
+        raise ValueError(f'크기 불일치: 패턴 {rows}×{cols} vs 필터 {n}×{n}')
+    ...
+except Exception as e:
+    print(f"FAIL (처리 불가): {e}")
+    failures.append((case_id, str(e)))
+```
+
+`data.json`의 패턴 키(`size_{N}_{idx}`)에서 정규식으로 `N`을 뽑아 해당 크기의 필터가 로드됐는지, 패턴 크기가 필터 크기와 일치하는지 확인합니다. 케이스 하나를 통째로 `try/except`로 감싸 두었기 때문에, 문제가 생기면 그 케이스만 FAIL로 기록되고 `for` 루프는 나머지 케이스를 계속 처리합니다 — 실제로 `size_13` 필터를 지우고 `size_25_1` 패턴 크기를 24×25로 깨뜨린 데이터로 프로그램이 죽지 않는지 검증했습니다.
 
 ## 결과 리포트
 

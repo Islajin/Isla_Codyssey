@@ -39,7 +39,136 @@
 
 크기가 3→5→13→25로 커질수록 연산 횟수(N²)와 평균 소요 시간이 함께 늘어나는 걸 표로 확인할 수 있습니다. MAC 연산은 N×N칸을 전부 한 번씩 곱하고 더해야 하니, 계산량이 딱 N²만큼 필요합니다(이중 for문 = 바깥 N번 × 안쪽 N번). 필터 한 변의 길이가 2배가 되면 계산량은 대략 4배가 되는 식이죠. 실제 AI 모델에서 필터 크기가 커지고 개수가 늘어나면 이 N²이 기하급수적으로 부담이 커지는데, 이게 바로 NPU 같은 전용 병렬 연산 칩이 필요한 이유와 직접 연결됩니다.
 
-## 8. 만든 순서 (팀원에게 "어떻게 만들었어?"라고 물어보면 이 순서로 답하면 됨)
+## 8. 코드로 보는 핵심 구현 (함수별 상세 설명)
+
+여기부터는 `main.py`의 실제 코드를 그대로 가져와서, 왜 이렇게 짰는지 하나씩 설명합니다. 발표할 때 이 코드를 화면에 띄워놓고 아래 설명대로 말하면 됩니다.
+
+### 8-1. 라벨 정규화 — `normalize_label`
+
+```python
+LABEL_MAP = {'+': 'Cross', 'cross': 'Cross', 'x': 'X'}
+
+def normalize_label(raw):
+    key = str(raw).strip().lower()
+    if key not in LABEL_MAP:
+        raise ValueError(f"알 수 없는 라벨: {raw}")
+    return LABEL_MAP[key]
+```
+
+- 딕셔너리 하나(`LABEL_MAP`)에 "들어올 수 있는 표기 → 표준 이름"을 다 적어놓고, 함수는 그냥 `strip().lower()`로 소문자·공백 제거한 다음 딕셔너리에서 찾아주기만 합니다.
+- 이 함수 하나로 `expected` 값(`'+'`/`'x'`)과 필터 키(`'cross'`/`'x'`) **정규화를 둘 다** 처리합니다 — 어차피 둘 다 "같은 뜻, 다른 표기"라는 같은 문제라서 함수를 나눌 필요가 없었습니다.
+- 매핑에 없는 값이 들어오면(`'triangle'`처럼) 조용히 넘어가지 않고 `ValueError`를 던져서, 호출한 쪽(모드 2의 케이스 처리)이 "이 케이스는 처리 불가"로 잡아채게 만들었습니다.
+
+### 8-2. MAC 연산 — `mac_score`
+
+```python
+def mac_score(pattern, filter_):
+    total = 0.0
+    for row_p, row_f in zip(pattern, filter_):
+        for p, f in zip(row_p, row_f):
+            total += p * f
+    return total
+```
+
+- 이게 이 과제의 진짜 핵심입니다. `zip`으로 두 2차원 리스트를 같은 행끼리, 같은 칸끼리 짝지어서 **곱하고(Multiply) 누적해서 더하는(Accumulate)** 걸 그대로 코드로 옮긴 것뿐이에요.
+- 바깥 `for`가 행(N번), 안쪽 `for`가 열(N번) 돌아서 총 N×N번 곱셈·덧셈이 일어납니다 — 이게 뒤에 나오는 "왜 O(N²)인가"의 근거입니다.
+- NumPy의 `np.sum(pattern * filter_)` 같은 걸 쓰면 한 줄로 끝나지만, 과제 조건이 "외부 라이브러리 금지, 반복문으로 직접 구현"이라 순수 파이썬 반복문만 사용했습니다.
+
+### 8-3. 판정 — `judge_label`
+
+```python
+EPSILON = 1e-9
+
+def judge_label(score_cross, score_x, eps=EPSILON):
+    if abs(score_cross - score_x) < eps:
+        return 'UNDECIDED'
+    return 'Cross' if score_cross > score_x else 'X'
+```
+
+- 두 점수의 차이의 절댓값이 `1e-9`보다 작으면 "사실상 같다"고 보고 `UNDECIDED`를 반환합니다. 이게 앞에서 설명한 "부동소수점이라 `==` 대신 허용오차로 비교해야 한다"는 원칙이 코드로 구현된 부분입니다.
+- 동점이 아니면 그냥 점수 큰 쪽의 이름을 돌려줍니다. 모드 1에서는 이 `'Cross'`/`'X'`를 다시 `'A'`/`'B'`로 바꿔서 보여줍니다(필터 A가 Cross 역할, B가 X 역할이라는 뜻이 아니라, 그냥 사용자가 입력한 두 필터 중 어느 쪽 점수가 높은지를 표현하는 용도라서요).
+
+### 8-4. 성능 측정 — `measure_avg_ms`
+
+```python
+def measure_avg_ms(func, *args, repeats=10):
+    result = None
+    total_seconds = 0.0
+    for _ in range(repeats):
+        start = time.perf_counter()
+        result = func(*args)
+        end = time.perf_counter()
+        total_seconds += (end - start)
+    avg_ms = (total_seconds / repeats) * 1000
+    return result, avg_ms
+```
+
+- 아무 함수(`func`)나 인자(`*args`)와 함께 넘기면, 그 함수를 10번(`repeats`) 호출하면서 매번 `time.perf_counter()`로 걸린 시간을 재고 다 더한 다음 평균을 냅니다.
+- 함수 하나로 모드 1(필터 A/B 점수 계산)과 모드 2(크기별 MAC 연산)의 성능 측정을 둘 다 처리합니다 — 측정 로직 자체는 "무슨 함수를 재는지"와 상관없어서 재사용이 가능했어요.
+- `result`도 같이 돌려주는 이유는, 시간을 재는 김에 마지막 계산 결과도 그대로 활용하기 위해서입니다(모드 1에서 점수 출력할 때 다시 계산 안 해도 되게).
+
+### 8-5. 패턴 생성기 — `generate_cross` / `generate_x` (보너스 겸용)
+
+```python
+def generate_cross(n):
+    mid = n // 2
+    return [[1.0 if (r == mid or c == mid) else 0.0 for c in range(n)] for r in range(n)]
+
+def generate_x(n):
+    return [[1.0 if (r == c or r + c == n - 1) else 0.0 for c in range(n)] for r in range(n)]
+```
+
+- `generate_cross(n)`: 가운데 행(`r == mid`)이나 가운데 열(`c == mid`)이면 1, 아니면 0 — 정확히 십자가 모양입니다.
+- `generate_x(n)`: 왼쪽 위→오른쪽 아래 대각선(`r == c`)이거나 오른쪽 위→왼쪽 아래 대각선(`r + c == n - 1`)이면 1 — 정확히 X 모양입니다.
+- 이 두 함수는 `data.json`에 없는 3×3 크기를 모드 2 성능 분석에서 벤치마크하려고 먼저 만든 건데, "크기 N을 넣으면 십자가/X를 자동 생성"하는 보너스 요구사항을 그대로 만족합니다.
+
+### 8-6. 입력 검증 — `read_row` / `read_matrix`
+
+```python
+def read_row(n, label):
+    while True:
+        raw = input().split()
+        if len(raw) != n:
+            print(f"입력 형식 오류: 각 줄에 {n}개의 숫자를 공백으로 구분해 입력하세요.")
+            continue
+        try:
+            return [float(x) for x in raw]
+        except ValueError:
+            print(f"입력 형식 오류: 각 줄에 {n}개의 숫자를 공백으로 구분해 입력하세요.")
+```
+
+- `while True`로 한 줄씩 계속 다시 물어보는 구조입니다. 실패 조건이 두 가지라 각각 체크합니다: ① 숫자 개수가 `n`개가 아님 → 바로 안내 후 재입력. ② 개수는 맞는데 `float()` 변환이 실패함(글자가 섞여 있는 경우) → 역시 안내 후 재입력.
+- 성공하면(둘 다 통과하면) `return`으로 빠져나가서 다음 줄로 넘어갑니다. `read_matrix(n, label)`은 이 함수를 `n`번 호출해서 한 줄씩 쌓아 행렬을 완성합니다.
+
+### 8-7. 스키마 방어 — 모드 2의 케이스 처리 루프
+
+```python
+for case_id in sorted(patterns.keys()):
+    ...
+    try:
+        m = re.match(r'size_(\d+)_\d+$', case_id)
+        if not m:
+            raise ValueError('케이스 키 형식이 size_{N}_{idx}가 아닙니다.')
+        n = int(m.group(1))
+
+        if n not in filters_by_size:
+            raise ValueError(f'size_{n} 필터가 로드되지 않았습니다.')
+
+        pattern_input = case['input']
+        rows = len(pattern_input)
+        cols = len(pattern_input[0]) if rows else 0
+        if rows != n or cols != n:
+            raise ValueError(f'크기 불일치: 패턴 {rows}×{cols} vs 필터 {n}×{n}')
+        ...
+    except Exception as e:
+        print(f"FAIL (처리 불가): {e}")
+        failures.append((case_id, str(e)))
+```
+
+- 핵심은 **케이스 하나마다 통째로 `try/except`로 감싸놨다**는 점입니다. 정규식으로 `N`을 못 뽑거나, 그 크기의 필터가 없거나, 패턴 크기가 필터 크기와 다르면 그냥 `ValueError`를 던지고, 바깥의 `except`가 그걸 잡아서 "이 케이스는 FAIL, 사유는 이거"라고 기록한 뒤 **`for` 루프는 계속 다음 케이스로 넘어갑니다.**
+- 그래서 데이터 8개 중 1개가 깨져 있어도 프로그램 전체가 죽지 않고, 나머지 7개는 정상적으로 판정됩니다 — 실제로 `size_13` 필터를 통째로 지우고 `size_25_1` 패턴을 24×25로 깨뜨린 가짜 데이터로 이 부분을 테스트해봤습니다.
+
+## 9. 만든 순서 (팀원에게 "어떻게 만들었어?"라고 물어보면 이 순서로 답하면 됨)
 
 1. 먼저 `data.json`을 열어서 구조부터 파악했어요 — 필터가 5/13/25 세 가지 크기로 있고, 정답 표기가 `'+'`/`'x'`, 필터 이름 표기가 `'cross'`/`'x'`로 서로 다르다는 걸 확인했습니다.
 2. 그 다음 제일 핵심인 세 함수(라벨 정규화, MAC 점수 계산, epsilon 판정)부터 만들었어요. 나머지는 다 이 세 개를 조합하는 일이라서요.
@@ -49,11 +178,11 @@
 6. 일부러 필터를 하나 지우거나 패턴 크기를 깨뜨린 가짜 데이터를 만들어서 돌려보고, 프로그램이 죽지 않고 그 케이스만 실패 처리되는지 확인했어요. 실제 과제 데이터는 이렇게 깨져 있지 않지만, "혹시 깨져 있어도 안 죽어야 한다"는 요구사항이라 일부러 테스트했습니다.
 7. 마지막으로 실제 `data.json`을 돌려서 나온 진짜 결과(몇 개 통과했는지, 왜 실패했는지)를 가지고 README와 이 문서를 썼어요. 추측이 아니라 실제로 실행해본 결과를 그대로 옮긴 거예요.
 
-## 9. 보너스 과제는 어디까지 했나
+## 10. 보너스 과제는 어디까지 했나
 
 - **패턴 생성기(구현함)**: 크기 N만 주면 십자가/X 패턴을 자동으로 만들어주는 함수를 만들었어요. 사실 이건 보너스라서 만든 게 아니라, `data.json`에 없는 3×3 크기 성능 측정을 하려면 어차피 필요해서 만들었는데, 그게 그대로 보너스 요구사항(패턴 생성기)이 됐어요.
 - **1차원 배열 최적화 비교(안 함)**: 2차원 리스트를 1차원으로 펼쳐서 접근 방식을 바꾸고 전/후 성능을 비교하는 보너스는 이번엔 안 했어요. 필수 요구사항(모드 1/2, 성능 분석, 리포트)을 먼저 확실히 끝내는 데 집중했고, 시간 여유가 되면 다음에 추가해볼 수 있는 부분이라고 설명하면 됩니다.
 
-## 10. 한 줄 요약 (발표용)
+## 11. 한 줄 요약 (발표용)
 
 "이미지 패턴 인식의 가장 기본 연산인 MAC을 반복문으로 직접 구현해서, 십자가/X를 판별하는 미니 NPU 시뮬레이터를 만들었고, 그 과정에서 데이터 표기 차이를 다루는 라벨 정규화와 부동소수점 오차를 다루는 epsilon 비교 정책이 왜 필요한지, 그리고 크기가 커질수록 연산량이 N²로 늘어난다는 걸 직접 측정해서 확인했다."
