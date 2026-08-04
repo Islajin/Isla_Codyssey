@@ -41,6 +41,20 @@ def measure_avg_ms(func, *args, repeats=10):
     return result, avg_ms
 
 
+def flatten(matrix):
+    flat = []
+    for row in matrix:
+        flat.extend(row)
+    return flat
+
+
+def mac_score_1d(pattern_flat, filter_flat, n):
+    total = 0.0
+    for idx in range(n * n):
+        total += pattern_flat[idx] * filter_flat[idx]
+    return total
+
+
 def generate_cross(n):
     mid = n // 2
     return [[1.0 if (r == mid or c == mid) else 0.0 for c in range(n)] for r in range(n)]
@@ -196,16 +210,27 @@ def mode2():
     print("\n#----------------------------------------")
     print("# [3] 성능 분석 (평균/10회)")
     print("#----------------------------------------")
-    perf_rows = []
-    p3 = generate_cross(3)
-    f3 = generate_cross(3)
-    _, avg3 = measure_avg_ms(mac_score, p3, f3)
-    perf_rows.append((3, avg3))
+    benchmark_inputs = [(3, generate_cross(3), generate_cross(3))]
     for n in sorted(filters_by_size.keys()):
         cross_filter = filters_by_size[n]['Cross']
-        _, avg_ms = measure_avg_ms(mac_score, cross_filter, cross_filter)
+        benchmark_inputs.append((n, cross_filter, cross_filter))
+
+    perf_rows = []
+    for n, pat, filt in benchmark_inputs:
+        _, avg_ms = measure_avg_ms(mac_score, pat, filt)
         perf_rows.append((n, avg_ms))
     print_perf_table(perf_rows)
+
+    print("\n#----------------------------------------")
+    print("# [3-1] 보너스: 시뮬레이터 최적화 (2D 반복문 vs 1차원 배열 변환)")
+    print("#----------------------------------------")
+    print(f"{'크기':<10} {'2D 평균(ms)':<14} {'1D 평균(ms)':<14} {'비율(2D/1D)'}")
+    print("-" * 55)
+    for (n, pat, filt), (_, avg_2d) in zip(benchmark_inputs, perf_rows):
+        pat_flat, filt_flat = flatten(pat), flatten(filt)
+        _, avg_1d = measure_avg_ms(mac_score_1d, pat_flat, filt_flat, n)
+        ratio = avg_2d / avg_1d if avg_1d else float('inf')
+        print(f"{f'{n}×{n}':<10} {avg_2d:<14.3f} {avg_1d:<14.3f} {ratio:.2f}x")
 
     print("\n#----------------------------------------")
     print("# [4] 결과 요약")
