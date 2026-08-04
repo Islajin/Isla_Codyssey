@@ -182,4 +182,4 @@ def mac_score_1d(pattern_flat, filter_flat, n):
 
 ## 참고
 
-- 개념 설명 위주의 팀 공유용 요약은 [docs/notion_summary.md](docs/notion_summary.md)를 참고하세요.
+ [docs/notion_summary.md](docs/notion_summary.md)를 참고
