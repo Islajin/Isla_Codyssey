@@ -182,4 +182,5 @@ def mac_score_1d(pattern_flat, filter_flat, n):
 
 ## 참고
 
- [docs/notion_summary.md](docs/notion_summary.md)를 참고
+- [docs/notion_summary.md](docs/notion_summary.md)를 참고
+- [docs/mission_spec.md](docs/mission_spec.md)를 참고 (원본 미션 명세 전문)
