@@ -1,7 +1,7 @@
 const GITHUB_USERNAME = "Islajin";
 const GITHUB_API_URL = `https://api.github.com/users/${GITHUB_USERNAME}/repos?sort=updated&per_page=100`;
 const CACHE_KEY = "github-projects-cache";
-const CACHE_TIME = 10 * 60 * 1000;
+const CACHE_TIME = 60 * 60 * 1000;
 
 const pageState = {
   theme: "light",
