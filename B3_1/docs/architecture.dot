@@ -1,0 +1,39 @@
+digraph B3_1 {
+  graph [label="B3_1 · AWS 서울 리전 (ap-northeast-2)", labelloc=t, fontsize=22,
+         fontname="Arial", bgcolor="#F7F9FC", pad=0.35, nodesep=0.45, ranksep=0.65];
+  node [shape=box, style="rounded,filled", fontname="Arial", fontsize=12,
+        color="#426782", fillcolor="white", margin="0.17,0.12"];
+  edge [fontname="Arial", fontsize=10, color="#315C7D", penwidth=1.8];
+
+  visitor [label="Internet user\nGET / or /health", fillcolor="#D7F3E9"];
+  learner [label="Learner IP /32\nSSH 22", fillcolor="#FFF0CE"];
+
+  subgraph cluster_vpc {
+    label="VPC 10.0.0.0/16";
+    style="rounded,filled";
+    color="#85A9C2";
+    fillcolor="#E9F2F8";
+    fontsize=16;
+
+    route [label="Public route table\n0.0.0.0/0 → Internet Gateway", fillcolor="#E2ECFF"];
+    igw [label="Internet Gateway\nattached to VPC", fillcolor="#E2ECFF"];
+
+    subgraph cluster_subnet {
+      label="Public Subnet 10.0.1.0/24";
+      style="rounded,filled";
+      color="#78AE9C";
+      fillcolor="#EAF8F1";
+      fontsize=14;
+
+      sg [label="Security Group\nHTTP 80: 0.0.0.0/0\nSSH 22: learner IP /32", fillcolor="#FFF7DF"];
+      ec2 [label="EC2 · t3.micro\nAmazon Linux 2023\nNginx + B1_1 portfolio\n8 GiB encrypted EBS\nPublic IPv4", fillcolor="#FFFFFF"];
+    }
+  }
+
+  visitor -> igw [label="HTTP :80"];
+  learner -> igw [label="SSH :22"];
+  igw -> route [label="internet route"];
+  route -> sg [label="subnet association"];
+  sg -> ec2 [label="allowed traffic"];
+  ec2 -> igw [label="outbound HTTPS", style=dashed, color="#638D69"];
+}

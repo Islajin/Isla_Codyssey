@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="웹 개발자 YeonJin의 반응형 포트폴리오" />
+    <title>YeonJin — Web Developer</title>
+    <link rel="icon" href="images/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="js/main.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">본문으로 바로가기</a>
+
+    <header class="site-header" id="site-header">
+      <nav class="nav container" aria-label="주요 메뉴">
+        <a class="logo" href="#home">YeonJin</a>
+
+        <ul class="nav-menu" id="nav-menu">
+          <li><a href="#home">Home</a></li>
+          <li><a href="#about">About</a></li>
+          <li><a href="#skills">Skills</a></li>
+          <li><a href="#projects">Projects</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+
+        <div class="nav-buttons">
+          <button id="theme-toggle" class="theme-toggle" type="button" aria-label="다크 모드로 전환">◐</button>
+          <button
+            id="menu-toggle"
+            class="menu-toggle"
+            type="button"
+            aria-label="메뉴 열기"
+            aria-controls="nav-menu"
+            aria-expanded="false"
+          >
+            <span></span><span></span><span></span>
+          </button>
+        </div>
+      </nav>
+    </header>
+
+    <main id="main-content">
+      <section class="hero section" id="home">
+        <div class="container reveal">
+          <p class="section-label">Hello, I’m YeonJin.</p>
+          <h1>기본을 이해하고<br />직접 만드는 웹 개발자</h1>
+          <p class="hero-text">
+            <span id="typing-text" aria-live="polite"></span><span class="typing-cursor" aria-hidden="true"></span>
+          </p>
+          <a class="button" href="#projects">프로젝트 보기</a>
+        </div>
+      </section>
+
+      <section class="about section" id="about">
+        <div class="container">
+          <div class="section-heading reveal">
+            <p class="section-label">01 · About</p>
+            <h2>About Me</h2>
+          </div>
+
+          <div class="about-layout">
+            <img
+              class="profile-image reveal"
+              src="https://avatars.githubusercontent.com/u/202807596?v=4"
+              alt="개발자 YeonJin의 GitHub 프로필 이미지"
+              width="360"
+              height="360"
+            />
+            <div class="about-text reveal">
+              <p>안녕하세요. 배운 내용을 실제로 동작하는 결과물로 만드는 개발자 YeonJin입니다.</p>
+              <p>시맨틱 HTML, 반응형 CSS, JavaScript의 DOM과 이벤트 처리부터 차근차근 학습하고 있습니다.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="skills section" id="skills">
+        <div class="container">
+          <div class="section-heading reveal">
+            <p class="section-label">02 · Skills</p>
+            <h2>Skills</h2>
+          </div>
+
+          <div class="skills-grid">
+            <article class="card reveal"><h3>HTML</h3><p>시맨틱하고 접근 가능한 문서 구조</p></article>
+            <article class="card reveal"><h3>CSS</h3><p>Flexbox, Grid, 반응형 레이아웃</p></article>
+            <article class="card reveal"><h3>JavaScript</h3><p>DOM 조작, 이벤트, 비동기 처리</p></article>
+            <article class="card reveal"><h3>Git & GitHub</h3><p>버전 관리와 GitHub Pages 배포</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="projects section" id="projects">
+        <div class="container">
+          <div class="section-heading reveal">
+            <p class="section-label">03 · Projects</p>
+            <h2>GitHub Projects</h2>
+            <p>GitHub API에서 가져온 공개 저장소입니다.</p>
+          </div>
+
+          <div id="project-filters" class="project-filters reveal" aria-label="프로젝트 언어 필터"></div>
+          <div id="projects-status" class="projects-status" role="status" aria-live="polite"></div>
+          <div id="projects-grid" class="projects-grid"></div>
+        </div>
+      </section>
+
+      <section class="contact section" id="contact">
+        <div class="container contact-layout">
+          <div class="section-heading reveal">
+            <p class="section-label">04 · Contact</p>
+            <h2>Contact</h2>
+            <p>문의 내용을 남겨 주세요.</p>
+          </div>
+
+          <form id="contact-form" class="contact-form reveal" novalidate>
+            <div class="form-field">
+              <label for="name">이름</label>
+              <input id="name" name="name" type="text" autocomplete="name" required />
+              <p id="name-error" class="field-error"></p>
+            </div>
+            <div class="form-field">
+              <label for="email">이메일</label>
+              <input id="email" name="email" type="email" autocomplete="email" required />
+              <p id="email-error" class="field-error"></p>
+            </div>
+            <div class="form-field">
+              <label for="message">메시지</label>
+              <textarea id="message" name="message" rows="5" required></textarea>
+              <p id="message-error" class="field-error"></p>
+            </div>
+            <button class="button" type="submit">메시지 보내기</button>
+            <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-layout">
+        <p>© <span id="current-year"></span> YeonJin</p>
+        <a href="https://github.com/Islajin" target="_blank" rel="noreferrer">GitHub</a>
+      </div>
+    </footer>
+
+    <button id="scroll-top" class="scroll-top" type="button" aria-label="페이지 맨 위로 이동">↑</button>
+  </body>
+</html>

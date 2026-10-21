@@ -1,0 +1,168 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: B3_1 - one public EC2 web server in an isolated VPC (Seoul region)
+
+Parameters:
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Existing EC2 key pair created in ap-northeast-2
+  SshCidr:
+    Type: String
+    Description: Your own public IPv4 address as a /32 CIDR, never 0.0.0.0/0
+    AllowedPattern: '^(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})(\.(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})){3}/32$'
+    ConstraintDescription: Enter a single public IPv4 address such as 203.0.113.10/32
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues: [t2.micro, t3.micro]
+    Description: Confirm Free Tier eligibility for your AWS account before deployment
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+    Description: Latest Amazon Linux 2023 x86_64 public AMI in this region
+
+Resources:
+  LabVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: B3_1-vpc
+        - Key: Project
+          Value: B3_1
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: {Ref: LabVpc}
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: B3_1-public-subnet
+        - Key: Project
+          Value: B3_1
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: B3_1-igw
+        - Key: Project
+          Value: B3_1
+
+  GatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: {Ref: LabVpc}
+      InternetGatewayId: {Ref: InternetGateway}
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: {Ref: LabVpc}
+      Tags:
+        - Key: Name
+          Value: B3_1-public-routes
+        - Key: Project
+          Value: B3_1
+
+  DefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayAttachment
+    Properties:
+      RouteTableId: {Ref: PublicRouteTable}
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: {Ref: InternetGateway}
+
+  PublicRouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: {Ref: PublicSubnet}
+      RouteTableId: {Ref: PublicRouteTable}
+
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: HTTP from the internet; SSH from one learner IP only
+      VpcId: {Ref: LabVpc}
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: Public HTTP
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: {Ref: SshCidr}
+          Description: SSH from the learner's IPv4 only
+      SecurityGroupEgress:
+        - IpProtocol: '-1'
+          CidrIp: 0.0.0.0/0
+          Description: OS package install and outbound connectivity test
+      Tags:
+        - Key: Name
+          Value: B3_1-web-sg
+        - Key: Project
+          Value: B3_1
+
+  WebInstance:
+    Type: AWS::EC2::Instance
+    DependsOn: DefaultRoute
+    Properties:
+      ImageId: {Ref: LatestAmiId}
+      InstanceType: {Ref: InstanceType}
+      KeyName: {Ref: KeyName}
+      Monitoring: false
+      MetadataOptions:
+        HttpEndpoint: enabled
+        HttpTokens: required
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: true
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: '0'
+          GroupSet:
+            - Ref: WebSecurityGroup
+          SubnetId: {Ref: PublicSubnet}
+      UserData:
+        Fn::Base64:
+          Fn::Sub: |
+            #!/bin/bash
+            set -euxo pipefail
+            dnf install -y nginx
+            printf 'OK\n' > /usr/share/nginx/html/health
+            systemctl enable --now nginx
+      Tags:
+        - Key: Name
+          Value: B3_1-web
+        - Key: Project
+          Value: B3_1
+
+Outputs:
+  PublicIp:
+    Description: EC2 public IPv4; changes if the instance is replaced or restarted
+    Value: {Fn::GetAtt: [WebInstance, PublicIp]}
+  HealthUrl:
+    Description: Public verification method B
+    Value:
+      Fn::Sub: 'http://${WebInstance.PublicIp}/health'
+  VpcId:
+    Value: {Ref: LabVpc}
+  SubnetId:
+    Value: {Ref: PublicSubnet}
+  RouteTableId:
+    Value: {Ref: PublicRouteTable}
+  SecurityGroupId:
+    Value: {Ref: WebSecurityGroup}
+  InstanceId:
+    Value: {Ref: WebInstance}
