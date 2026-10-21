@@ -3,7 +3,7 @@
 set -euo pipefail
 
 profile_name="${1:?Usage: ./scripts/cleanup.sh PROFILE}"
-region_name="ap-northeast-2"
+region_name="ap-southeast-2"
 stack_name="b3-1"
 
 identity_arn="$(aws sts get-caller-identity --profile "$profile_name" --query Arn --output text)"

@@ -5,7 +5,7 @@ set -euo pipefail
 project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 profile_name="${1:?Usage: ./scripts/verify.sh PROFILE /path/to/key.pem}"
 key_file="${2:?Usage: ./scripts/verify.sh PROFILE /path/to/key.pem}"
-region_name="ap-northeast-2"
+region_name="ap-southeast-2"
 stack_name="b3-1"
 evidence_file="$project_dir/docs/evidence/verification.txt"
 

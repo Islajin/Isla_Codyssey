@@ -1,5 +1,5 @@
 digraph B3_1 {
-  graph [label="B3_1 · AWS 서울 리전 (ap-northeast-2)", labelloc=t, fontsize=22,
+  graph [label="B3_1 · AWS 시드니 실습 (ap-southeast-2)", labelloc=t, fontsize=22,
          fontname="Arial", bgcolor="#F7F9FC", pad=0.35, nodesep=0.45, ranksep=0.65];
   node [shape=box, style="rounded,filled", fontname="Arial", fontsize=12,
         color="#426782", fillcolor="white", margin="0.17,0.12"];

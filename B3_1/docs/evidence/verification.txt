@@ -1,0 +1,22 @@
+Verified at: 2026-10-21 04:16:16 UTC
+Region: ap-southeast-2
+Instance: i-06ec8cc985b2829f4
+Public URL: http://15.134.214.202/
+--- External health check ---
+HTTP/1.1 200 OK
+Server: nginx/1.30.5
+Date: Wed, 21 Oct 2026 04:16:17 GMT
+Content-Type: application/octet-stream
+Content-Length: 3
+Last-Modified: Wed, 21 Oct 2026 04:15:50 GMT
+Connection: keep-alive
+ETag: "6ad83c76-3"
+Accept-Ranges: bytes
+
+OK
+
+--- EC2 state ---
+running
+--- Internal HTTP and internet egress ---
+localhost HTTP 200
+internet HTTPS 200

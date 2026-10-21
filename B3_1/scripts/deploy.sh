@@ -9,7 +9,7 @@ key_file=""
 ssh_cidr=""
 role_arn=""
 stack_name="b3-1"
-region_name="ap-northeast-2"
+region_name="ap-southeast-2"
 
 usage() {
   cat <<'EOF'
@@ -58,7 +58,7 @@ echo "Deploying as $identity_arn in $region_name"
 
 if ! aws cloudformation validate-template --profile "$profile_name" --region "$region_name" \
   --template-body "file://$project_dir/infrastructure/cloudformation.yaml" >/dev/null; then
-  echo 'Template validation or Seoul-region access failed. No stack deployment was started.' >&2
+  echo 'Template validation or Sydney-region access failed. No stack deployment was started.' >&2
   exit 1
 fi
 

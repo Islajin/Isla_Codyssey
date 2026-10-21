@@ -12,9 +12,9 @@ if [[ "$identity_arn" == *:root ]]; then
   exit 2
 fi
 
-if ! aws cloudformation validate-template --profile "$profile_name" --region ap-northeast-2 \
+if ! aws cloudformation validate-template --profile "$profile_name" --region ap-southeast-2 \
   --template-body "file://$project_dir/infrastructure/cloudformation.yaml" >/dev/null; then
-  echo 'The Seoul region is unavailable to this account. No IAM role was created.' >&2
+  echo 'Sydney-region template validation failed. No IAM role was created.' >&2
   exit 1
 fi
 
@@ -29,7 +29,7 @@ aws iam create-role \
   --tags Key=Project,Value=B3_1 >/dev/null
 aws iam put-role-policy \
   --profile "$profile_name" --role-name "$role_name" \
-  --policy-name B3_1EC2VPCSeoulOnly \
+  --policy-name B3_1EC2VPCSydneyOnly \
   --policy-document "file://$project_dir/infrastructure/iam/cloudformation-permissions.json"
 
 aws iam get-role --profile "$profile_name" --role-name "$role_name" \

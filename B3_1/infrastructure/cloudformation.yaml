@@ -1,10 +1,10 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: B3_1 - one public EC2 web server in an isolated VPC (Seoul region)
+Description: B3_1 - one public EC2 web server in an isolated VPC (Sydney account region)
 
 Parameters:
   KeyName:
     Type: AWS::EC2::KeyPair::KeyName
-    Description: Existing EC2 key pair created in ap-northeast-2
+    Description: Existing EC2 key pair created in ap-southeast-2
   SshCidr:
     Type: String
     Description: Your own public IPv4 address as a /32 CIDR, never 0.0.0.0/0
@@ -99,7 +99,7 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: {Ref: SshCidr}
-          Description: SSH from the learner's IPv4 only
+          Description: SSH from the learner IPv4 only
       SecurityGroupEgress:
         - IpProtocol: '-1'
           CidrIp: 0.0.0.0/0

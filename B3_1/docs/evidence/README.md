@@ -1,5 +1,5 @@
 # 외부 접속 증빙
 
-AWS CLI 인증 후 서울 리전 호출이 계정의 서비스 제어 정책(SCP)에서 거부됨을 확인했습니다. 실제 배포 전이라 접속 스크린샷은 생성되지 않았습니다. 이 폴더에 제출용 가짜 이미지를 넣지 않습니다.
+2026-10-21 시드니 리전(`ap-southeast-2`)에서 실제 배포하고, AWS CloudShell에서 `curl -i --max-time 10 http://15.134.214.202/health`를 실행해 `HTTP/1.1 200 OK`와 본문 `OK`를 확인했습니다. 실제 화면은 [`external-access.png`](external-access.png), 로컬 검증 스크립트의 출력은 [`verification.txt`](verification.txt)입니다.
 
-배포 후 `./scripts/verify.sh b3-lab /path/to/key.pem`으로 실제 명령 결과를 확인하고, 브라우저에서 `http://<PUBLIC_IP>/health`를 연 화면 또는 외부 컴퓨터의 `curl -i` 결과를 캡처해 `external-access.png`로 저장하세요. URL/IP와 캡처 일시를 `README.md`의 배포 결과 표에 기록하세요.
+검증 뒤 과제의 정리 조건에 따라 EC2와 VPC를 삭제했습니다. 이 URL은 실습 당시의 접속 정보이며 현재 활성 웹사이트가 아닙니다. 과제에 명시된 서울 리전과 다르므로 제출 전 담당자의 허용 여부를 확인해야 합니다.
