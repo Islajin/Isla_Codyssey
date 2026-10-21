@@ -56,6 +56,12 @@ if [[ "$identity_arn" == *:root ]]; then
 fi
 echo "Deploying as $identity_arn in $region_name"
 
+if ! aws cloudformation validate-template --profile "$profile_name" --region "$region_name" \
+  --template-body "file://$project_dir/infrastructure/cloudformation.yaml" >/dev/null; then
+  echo 'Template validation or Seoul-region access failed. No stack deployment was started.' >&2
+  exit 1
+fi
+
 aws cloudformation deploy \
   --profile "$profile_name" --region "$region_name" \
   --template-file "$project_dir/infrastructure/cloudformation.yaml" \

@@ -1,15 +1,17 @@
 # B3_1 트러블슈팅 기록
 
-## 현재 기록: CLI 인증·실습 역할이 없어 실제 AWS 배포 전
+## 실제 장애: 서울 리전 API가 AWS 조직 정책에서 거부됨
 
 | 단계 | 기록 |
 | --- | --- |
-| 증상 | 2026-10-21 초기에는 AWS 계정과 CLI 인증이 없어서 스택 생성, SSH, 외부 HTTP 검증을 실행할 수 없었음. |
-| 가설 | 실습용 자격 증명과 역할이 없어 AWS API 호출이 불가능함. |
-| 검증 | 초기 로컬에서 `command -v aws`와 `~/.aws` 구성을 확인해 AWS CLI/프로필이 없었음. 이후 학습자가 AWS 계정을 생성했고, 콘솔에서 무료 플랜과 IAM 화면을 확인함. |
-| 조치 | AWS CLI를 설치하고 CloudFormation 템플릿, 배포·검증·정리 스크립트, 실행 역할 정책을 작성함. CLI 인증과 역할 적용은 진행 중. |
-| 결과 | 계정과 CLI 프로그램은 준비됐으나 AWS 실배포와 외부 접속은 **미검증**. 성공으로 기록하지 않음. |
-| 재발 방지 | 실습 시작 전 계정, 리전, IAM 역할, EC2 키페어, 비용 한도를 확인하는 사전 점검표를 README에 추가함. |
+| 증상 | 2026-10-21 서울 리전(`ap-northeast-2`)에서 `cloudformation:ValidateTemplate`, `cloudformation:DescribeStacks`, `ec2:DescribeInstanceTypes`가 `explicit deny in a service control policy`로 실패함. |
+| 가설 | CLI 인증 실패 또는 계정의 선택 리전이 서울이 아닌 상태에서 AWS 조직 정책이 서울 API를 차단함. |
+| 검증 | `aws sts get-caller-identity --profile b3-lab`은 성공해 임시 역할 세션임을 확인함. 같은 템플릿의 `ValidateTemplate`과 `t3.micro` 조회는 시드니(`ap-southeast-2`)에서 성공함. 따라서 템플릿 구문이나 CLI 인증보다 계정 리전 정책이 원인임을 확인함. AWS 공식 문서도 이 유형의 새 프로젝트가 한국 주소에는 시드니를 선택 리전으로 할당한다고 설명함. |
+| 조치 | 서울 리전에서 자원을 생성하지 않고 중단함. 현재 무료 프로젝트의 고정 리전을 임의로 우회하지 않았음. 서울 리전 사용이 가능한 별도 계정 또는 계정의 고급 기능 전환 여부는 사용자 결정이 필요함. |
+| 결과 | 원인 확인. **서울 배포, SSH, 외부 HTTP는 미실행·미검증.** 시드니에서 템플릿 검증만 성공했으며 AWS 리소스는 생성하지 않음. |
+| 재발 방지 | 배포 전에 반드시 대상 리전으로 `ValidateTemplate`과 EC2 조회를 실행해 계정 리전 정책을 확인하도록 README에 기록함. |
+
+근거: [AWS 프로젝트 리전 안내](https://docs.aws.amazon.com/accounts/latest/reference/project-regions.html), [AWS 프로젝트 SCP 안내](https://docs.aws.amazon.com/accounts/latest/reference/scps-and-rcps-for-projects.html). `AccessDenied` 출력에는 계정·조직 식별자가 포함되어 있으므로 공개 저장소에는 원문 전체를 넣지 않았습니다.
 
 ## 실제 네트워크/권한 오류가 발생하면 아래에 추가
 
