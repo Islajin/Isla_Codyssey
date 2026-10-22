@@ -1,4 +1,4 @@
-"""Command-line input and output. All business rules live in the service."""
+"""명령어 해석, 대화형 입력, 결과·오류 출력을 담당한다."""
 
 from __future__ import annotations
 
@@ -16,21 +16,24 @@ from .storage import LedgerStore
 
 
 def timed(func: Callable[..., int]) -> Callable[..., int]:
-    """Cross-cutting execution timing, enabled with BUDGET_APP_TIMING=1."""
+    """실행 시간 측정을 명령 처리 코드에서 분리한 데코레이터."""
     @wraps(func)
     def wrapper(*args: object, **kwargs: object) -> int:
         start = perf_counter()
         try:
             return func(*args, **kwargs)
         finally:
+            # 평소 출력은 깔끔하게 유지하고 요청할 때만 시간을 표시한다.
             if os.getenv("BUDGET_APP_TIMING") == "1":
                 print(f"[실행 시간] {perf_counter() - start:.3f}초", file=sys.stderr)
     return wrapper
 
 
 def parser() -> argparse.ArgumentParser:
+    """모든 명령과 --help, -- 옵션을 한 곳에서 정의한다."""
     root = argparse.ArgumentParser(prog="python -m budget_app", description="나만의 용돈 기입장")
     root.add_argument("--data-dir", type=Path, default=Path("data"), help="저장 폴더 (기본: ./data)")
+    # 상위 옵션이므로 --data-dir은 하위 명령 앞에 둔다.
     commands = root.add_subparsers(dest="command", required=True)
 
     commands.add_parser("add", help="대화형으로 거래 추가")
@@ -81,11 +84,13 @@ def parser() -> argparse.ArgumentParser:
 
 
 def _date_filters(command: argparse.ArgumentParser) -> None:
+    """검색과 내보내기에 공통인 날짜 범위 옵션을 등록한다."""
     command.add_argument("--from", dest="from_date")
     command.add_argument("--to", dest="to_date")
 
 
 def _print_items(items: Iterator[Transaction]) -> None:
+    """제너레이터의 거래를 출력하고 사용한 파일 자원을 닫는다."""
     found = False
     try:
         for item in items:
@@ -99,13 +104,16 @@ def _print_items(items: Iterator[Transaction]) -> None:
 
 
 def _prompt(label: str) -> str:
+    """대화형 입력의 앞뒤 공백을 정리한다."""
     return input(label).strip()
 
 
 def _run(args: argparse.Namespace) -> int:
+    """CLI 요청을 서비스 기능에 연결하고 사용자 메시지를 출력한다."""
     service = BudgetService(LedgerStore(args.data_dir))
     command = args.command
     if command == "add":
+        # 과제의 기본 입력 방식: add는 필드를 순서대로 질문한다.
         item = service.add(date=_prompt("날짜(YYYY-MM-DD): "),
                            type=_prompt("타입(income/expense): "),
                            category=_prompt("카테고리: "),
@@ -119,6 +127,7 @@ def _run(args: argparse.Namespace) -> int:
         _print_items(service.search(from_date=args.from_date, to_date=args.to_date,
                                     category=args.category, type=args.type, q=args.q, tag=args.tag))
     elif command == "summary":
+        # 서비스는 계산 결과를 돌려주고, 표시 형식과 경고 문구는 CLI가 맡는다.
         result = service.summary(args.month, args.top)
         if result.count == 0:
             print(f"{args.month}: 데이터 없음")
@@ -155,6 +164,7 @@ def _run(args: argparse.Namespace) -> int:
             service.remove_category(args.name)
             print(f"[삭제 완료] category={args.name}")
     elif command == "update":
+        # update는 README에 명시한 옵션 방식으로만 입력받는다.
         changes = {name: getattr(args, name) for name in ("date", "type", "category", "amount", "memo", "tags")}
         if not service.update(args.id, **changes):
             raise AppError(f"id={args.id} 거래가 없습니다. list/search로 id를 확인하세요.")
@@ -174,6 +184,7 @@ def _run(args: argparse.Namespace) -> int:
 
 @timed
 def main(argv: list[str] | None = None) -> int:
+    """사용자 오류를 스택트레이스 대신 메시지와 종료 코드 1로 처리한다."""
     try:
         return _run(parser().parse_args(argv))
     except (AppError, OSError, UnicodeError, EOFError, KeyboardInterrupt) as exc:

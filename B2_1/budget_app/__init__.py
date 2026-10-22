@@ -1,1 +1,1 @@
-"""A file-backed allowance ledger using only the Python standard library."""
+"""JSONL 파일을 사용하는 콘솔 용돈 기입장 패키지."""

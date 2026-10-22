@@ -1,4 +1,4 @@
-"""Behavior tests for persistence, CSV validation, sorting, and CLI errors."""
+"""영구 저장, CSV 검증, 최신순 정렬, CLI 오류 동작을 확인한다."""
 
 import csv
 from pathlib import Path
@@ -13,6 +13,7 @@ from budget_app.storage import LedgerStore, newest_first
 
 
 class BudgetAppTests(unittest.TestCase):
+    """각 테스트를 임시 저장 폴더에서 실행해 실제 사용자 데이터를 건드리지 않는다."""
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -24,6 +25,7 @@ class BudgetAppTests(unittest.TestCase):
                                 amount=amount, memo=memo, tags=tags)
 
     def test_crud_search_summary_budget_and_persistence(self) -> None:
+        """CRUD·검색·요약·예산과 재실행 후 파일 저장 상태를 확인한다."""
         first = self.add(date="2024-01-01", amount="100")
         second = self.add(date="2024-01-20", category="transport", amount="200")
         income = self.add(date="2024-01-10", type="income", category="salary", amount="1000")
@@ -44,6 +46,7 @@ class BudgetAppTests(unittest.TestCase):
         self.assertNotIn("food", LedgerStore(self.root / "data").categories())
 
     def test_invalid_update_and_import_leave_data_intact(self) -> None:
+        """수정이나 CSV 검증 실패 시 기존 거래 파일이 그대로인지 확인한다."""
         item = self.add()
         original = (self.root / "data" / "transactions.jsonl").read_bytes()
         with self.assertRaises(AppError):
@@ -58,6 +61,7 @@ class BudgetAppTests(unittest.TestCase):
         self.assertEqual((self.root / "data" / "transactions.jsonl").read_bytes(), original)
 
     def test_csv_round_trip_and_cli_error_code(self) -> None:
+        """CSV 왕복과 사용자 오류의 비정상 종료·스택트레이스 방지를 확인한다."""
         self.add(memo="점심, 간식", tags="meal,friend")
         out = self.root / "out.csv"
         self.assertEqual(self.service.export_csv(out, month="2024-01"), 1)
@@ -77,6 +81,7 @@ class BudgetAppTests(unittest.TestCase):
         self.assertNotIn("Traceback", run.stderr)
 
     def test_external_sort_across_chunks(self) -> None:
+        """여러 정렬 묶음으로 나뉘어도 날짜 최신순이 유지되는지 확인한다."""
         dates = ("2024-01-02", "2024-01-05", "2024-01-01", "2024-01-04", "2024-01-03")
         for day in dates:
             self.add(date=day)
