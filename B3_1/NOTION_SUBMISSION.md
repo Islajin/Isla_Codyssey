@@ -35,7 +35,7 @@ VPC `10.0.0.0/16` 안에 Public Subnet `10.0.1.0/24`를 만들고, Internet Gate
 
 ### 외부 접속 방식 B
 
-외부 네트워크에서 `GET http://<서울 EC2 공인 IP>/health`를 호출해 HTTP `200`과 고정 본문 `OK`를 확인합니다. 실제 URL과 검증 시각은 [`README.md`](README.md)에 적고 응답 화면을 `docs/evidence/external-access.png`에 저장합니다. 리소스 삭제 후 과거 URL은 동작하지 않습니다.
+외부 네트워크에서 `GET http://<서울 EC2 공인 IP>/health`를 호출해 HTTP `200`과 고정 본문 `OK`를 확인합니다. 실제 URL과 검증 시각은 [`README.md`](README.md)에 적고 응답 화면을 `docs/evidence/external-access.png`에 저장합니다. 리소스 삭제 후 해당 URL은 동작하지 않습니다.
 
 ### 리소스 정리
 
@@ -109,4 +109,3 @@ HTTPS와 Docker는 이번 제출 범위에서 제외했습니다. 보너스 미�
 - [x] 네트워크·EC2/서버·보안 그룹·IAM·외부 접속 캡처를 README에 연결
 - [x] Nginx 준비 전 reload 실패와 해결 사례를 기록
 - [x] EC2·EBS·EIP·IGW·VPC 정리 결과 최종 조회와 캡처 확인
-- [x] 과거 시드니 증빙을 별도 보관하고 서울 결과와 구분

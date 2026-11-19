@@ -1,6 +1,6 @@
 # B3_1 서울 리전 리소스 정리 체크리스트
 
-2026-11-20 08:50:53 KST에 서울 리전(`ap-northeast-2`)에서 실습 리소스 정리를 조회했습니다. [정리 결과 캡처](evidence/cleanup.png)와 [원본 요약](evidence/cleanup-audit.json)을 함께 제출합니다. 과거 시드니 결과는 [`archive/sydney-2026-10-21/cleanup-checklist.md`](archive/sydney-2026-10-21/cleanup-checklist.md)에 별도 보관했습니다.
+2026-11-20 08:50:53 KST에 서울 리전(`ap-northeast-2`)에서 실습 리소스 정리를 조회했습니다. [정리 결과 캡처](evidence/cleanup.png)와 [원본 요약](evidence/cleanup-audit.json)을 함께 제출합니다.
 
 | 확인 항목 | 리소스 ID | 상태 | 조회/삭제 근거 |
 | --- | --- | --- | --- |
