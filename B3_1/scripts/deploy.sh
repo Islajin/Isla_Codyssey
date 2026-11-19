@@ -9,15 +9,15 @@ key_file=""
 ssh_cidr=""
 role_arn=""
 stack_name="b3-1"
-region_name="ap-southeast-2"
+region_name="ap-northeast-2"
 
 usage() {
   cat <<'EOF'
 Usage: ./scripts/deploy.sh --profile NAME --key-name AWS_KEY_NAME \
-  --key-file /path/to/key.pem --ssh-cidr YOUR_PUBLIC_IP/32 --role-arn ARN
+  --key-file /path/to/key.pem --ssh-cidr YOUR_PUBLIC_IP/32 [--role-arn ARN]
 
 Run only after checking this account's EC2 Free Tier eligibility and costs.
-The CloudFormation execution role must be limited to this project's EC2/VPC resources.
+The IAM user or optional CloudFormation execution role must be limited to this project's EC2/VPC resources.
 EOF
 }
 
@@ -33,7 +33,7 @@ while (($#)); do
   esac
 done
 
-if [[ -z "$profile_name" || -z "$key_name" || -z "$key_file" || -z "$ssh_cidr" || -z "$role_arn" ]]; then
+if [[ -z "$profile_name" || -z "$key_name" || -z "$key_file" || -z "$ssh_cidr" ]]; then
   usage >&2
   exit 2
 fi
@@ -58,16 +58,22 @@ echo "Deploying as $identity_arn in $region_name"
 
 if ! aws cloudformation validate-template --profile "$profile_name" --region "$region_name" \
   --template-body "file://$project_dir/infrastructure/cloudformation.yaml" >/dev/null; then
-  echo 'Template validation or Sydney-region access failed. No stack deployment was started.' >&2
+  echo 'Template validation or Seoul-region access failed. No stack deployment was started.' >&2
   exit 1
 fi
 
-aws cloudformation deploy \
-  --profile "$profile_name" --region "$region_name" \
-  --template-file "$project_dir/infrastructure/cloudformation.yaml" \
-  --stack-name "$stack_name" --role-arn "$role_arn" \
-  --parameter-overrides "KeyName=$key_name" "SshCidr=$ssh_cidr" \
+deploy_args=(
+  --profile "$profile_name" --region "$region_name"
+  --template-file "$project_dir/infrastructure/cloudformation.yaml"
+  --stack-name "$stack_name"
+  --parameter-overrides "KeyName=$key_name" "SshCidr=$ssh_cidr"
   --tags Project=B3_1 --no-fail-on-empty-changeset
+)
+if [[ -n "$role_arn" ]]; then
+  deploy_args+=(--role-arn "$role_arn")
+fi
+
+aws cloudformation deploy "${deploy_args[@]}"
 
 public_ip="$(aws cloudformation describe-stacks --profile "$profile_name" --region "$region_name" \
   --stack-name "$stack_name" --query 'Stacks[0].Outputs[?OutputKey==`PublicIp`].OutputValue | [0]' --output text)"
@@ -78,7 +84,8 @@ fi
 
 ssh_options=(-i "$key_file" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10)
 for attempt in {1..30}; do
-  if ssh "${ssh_options[@]}" "ec2-user@$public_ip" 'test -d /usr/share/nginx/html' >/dev/null 2>&1; then
+  if ssh "${ssh_options[@]}" "ec2-user@$public_ip" \
+    'systemctl is-active --quiet nginx && test -f /usr/share/nginx/html/health' >/dev/null 2>&1; then
     break
   fi
   if ((attempt == 30)); then

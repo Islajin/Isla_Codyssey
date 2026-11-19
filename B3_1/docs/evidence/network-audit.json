@@ -1,0 +1,14 @@
+{
+  "region": "ap-northeast-2",
+  "stackStatus": "CREATE_COMPLETE",
+  "vpcId": "vpc-0a9cc056b45cbc761",
+  "vpcCidr": "10.0.0.0/16",
+  "publicSubnetId": "subnet-0429c7625e75e9742",
+  "publicSubnetCidr": "10.0.1.0/24",
+  "internetGatewayId": "igw-07b5061a24304467c",
+  "internetGatewayAttachedToVpc": true,
+  "publicRouteTableId": "rtb-02ea675e255d2f7e7",
+  "defaultRoute": "0.0.0.0/0 -> igw-07b5061a24304467c",
+  "defaultRouteState": "active",
+  "routeTableAssociatedWithPublicSubnet": true
+}

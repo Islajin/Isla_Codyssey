@@ -1,108 +1,115 @@
-# B3_1 · 내 웹사이트를 AWS EC2에 배포하기
+# B3_1 — 내 웹사이트를 인터넷에 올려 누구나 쓰게 하기
 
-`B1_1` 포트폴리오(순수 HTML/CSS/JavaScript)를 AWS의 독립 VPC, Public Subnet, EC2, Nginx에 배포하는 실습 프로젝트입니다. 네트워크, 보안 그룹, 검증, 리소스 정리를 CloudFormation과 스크립트로 재현할 수 있게 만들었습니다.
+`B1_1` 포트폴리오를 **서울 리전(`ap-northeast-2`)**의 EC2와 Nginx에 배포하는 AWS 실습입니다. VPC, Public Subnet, Internet Gateway, Public Route Table, 보안 그룹, 최소 권한 IAM 사용자 정책을 코드로 정의했습니다.
 
-> **실습 결과 — 2026-10-21:** 학습자 요청에 따라 **시드니 리전(`ap-southeast-2`)**에서 실제 배포했습니다. EC2의 Nginx와 포트폴리오, 외부 `/health` HTTP 200/`OK`, 내부 `localhost` HTTP 200, 인터넷 아웃바운드 HTTPS 200을 확인했습니다. 과제 원문은 **서울 리전(`ap-northeast-2`)을 필수로 지정**하므로 리전 조건은 충족하지 않습니다. 현재 무료 프로젝트에서 서울 API가 SCP로 거부된 기록은 [`docs/troubleshooting.md`](docs/troubleshooting.md)에 있습니다.
+> **실습 결과 (2026-11-20):** 새 AWS 계정의 전용 IAM 사용자 `B3_1Learner`로 서울 리전에 배포했습니다. 실제 구성과 외부 HTTP 응답을 검증하고 화면을 저장했습니다. 검증 뒤 과금 위험을 줄이기 위해 실습 리소스를 정리했습니다. 아래 URL은 **검증 당시 주소**이며 정리 후 접속할 수 없습니다. 이전 시드니 자료는 [`docs/archive/sydney-2026-10-21/`](docs/archive/sydney-2026-10-21/)에 별도 보관했습니다.
 
-## 산출물
+## 제출 결과물과 캡처
 
-| 파일 | 내용 | 상태 |
+| 요구사항 | 제출 파일 | 현재 상태 |
 | --- | --- | --- |
-| [`docs/architecture.png`](docs/architecture.png) | VPC → Public Subnet → EC2와 외부 HTTP·SSH 흐름 | 실제 구성과 대조 완료 |
-| [`infrastructure/cloudformation.yaml`](infrastructure/cloudformation.yaml) | 시드니 VPC·서브넷·IGW·라우트·SG·EC2 구성 | 실제 스택 생성 및 검증 완료 |
-| [`infrastructure/iam/`](infrastructure/iam/) | CloudFormation 서비스 역할의 신뢰·권한 정책 | 시드니에서 적용 및 배포 확인 |
-| [`site/`](site/) | `B1_1` 웹사이트 파일 복사본 | EC2 Nginx에 배포, 외부 첫 화면 HTTP 200 |
-| [`docs/troubleshooting.md`](docs/troubleshooting.md) | 서울 정책 거부와 실제 SG 오류 해결 기록 | 작성 완료 |
-| [`docs/cleanup-checklist.md`](docs/cleanup-checklist.md) | 과금 리소스 정리 항목 | 실습 후 삭제 결과 기록 |
-| [`docs/evidence/external-access.png`](docs/evidence/external-access.png) | AWS CloudShell에서 공개 URL `GET /health`를 호출한 실제 화면 | HTTP 200 / `OK` 확인 |
-| [`docs/evidence/verification.txt`](docs/evidence/verification.txt) | 외부·내부·아웃바운드 명령 로그 | 모두 200 확인 |
+| 아키텍처 다이어그램 | [`docs/architecture.png`](docs/architecture.png) | 실제 서울 VPC·Subnet·IGW·Route Table·EC2·SG 구성과 대조 |
+| 외부 접속 방식 B, `GET /health` HTTP 200과 `OK` | [`external-access.png`](docs/evidence/external-access.png), [`verification.txt`](docs/evidence/verification.txt) | 외부에서 HTTP 200 / `OK` 확인 |
+| 실제 포트폴리오 화면 | [`site.png`](docs/evidence/site.png) | 독립 브라우저로 공개 IP 접속 |
+| VPC·Subnet·IGW·기본 경로 확인 | [`network.png`](docs/evidence/network.png), [`network-audit.json`](docs/evidence/network-audit.json) | 실제 AWS 리소스 조회 통과 |
+| EC2·Nginx·로컬 HTTP·아웃바운드 확인 | [`instance-and-server.png`](docs/evidence/instance-and-server.png), [`verification.txt`](docs/evidence/verification.txt) | 실행 상태와 내부·외부 응답 확인 |
+| SG HTTP 80 공개·SSH 22 개인 IP 제한 | [`security-group.png`](docs/evidence/security-group.png), [`security-audit.json`](docs/evidence/security-audit.json) | 두 인바운드 규칙 확인 |
+| IAM 최소 권한 | [`iam.png`](docs/evidence/iam.png), [`docs/iam-plan.md`](docs/iam-plan.md) | 비루트 IAM 사용자 정책과 관리자 정책 미연결 확인 |
+| 오류 재현·분석·해결 | [`docs/troubleshooting.md`](docs/troubleshooting.md) | Nginx 준비 전 reload 오류 분석·해결 |
+| EC2·EBS·EIP·IGW·VPC 정리 | [`docs/cleanup-checklist.md`](docs/cleanup-checklist.md), [`cleanup.png`](docs/evidence/cleanup.png) | 스택 삭제 후 실제 조회 결과 기록 |
+| 평가 문항용 노션 원고 | [`NOTION_SUBMISSION.md`](NOTION_SUBMISSION.md) | 실제 서울 실습 결과 반영 |
 
-## 선택한 외부 검증 방식
+이미지와 명령 출력은 **실제 AWS 조회·실제 외부 접속 결과**에서 만들었습니다. 계정 ID·개인 SSH IP·비밀 키는 공개하지 않습니다. AWS CLI 결과를 보기 좋게 렌더링한 이미지는 원본 JSON 또는 TXT를 함께 제공합니다.
 
-**방식 B:** 외부에서 `GET http://<EC2_PUBLIC_IP>/health` 요청이 HTTP 200과 `OK`를 반환하는지 확인합니다. 포트폴리오 페이지는 `http://<EC2_PUBLIC_IP>/`로 확인합니다.
+## 외부 접속 검증 방식
 
-| 실제 접속 정보 | 현재 값 |
+**방식 B:** 외부 컴퓨터에서 `GET http://43.201.24.70/health`가 HTTP `200`과 본문 `OK`를 반환했습니다. 리소스 정리 후 URL은 더 이상 활성 상태가 아닙니다.
+
+| 항목 | 실습 결과 |
 | --- | --- |
-| 리전 | `ap-southeast-2` (시드니, 과제의 서울 조건과 다름) |
-| 실습 당시 공개 IP / URL | `http://15.134.214.202/health` |
-| HTTP 200 / OK | 2026-10-21 04:16 UTC (13:16 KST) 확인 |
-| 증빙 스크린샷 | [`docs/evidence/external-access.png`](docs/evidence/external-access.png) |
+| 리전 | `ap-northeast-2` (서울, 실제 배포·조회) |
+| 검증 URL | `http://43.201.24.70/health` |
+| 검증 시각 | 2026-11-19 23:43:34 UTC / 2026-11-20 08:43:34 KST |
+| HTTP 응답 | `200 OK`, 본문 `OK` |
+| 외부 화면 캡처 | [`external-access.png`](docs/evidence/external-access.png) |
 
-스크린샷은 AWS CloudShell에서 공개 IP를 직접 호출한 실제 결과입니다. 실습 후 리소스를 삭제하면 위 URL은 더 이상 열리지 않습니다.
+![서울 EC2 외부 헬스 체크](docs/evidence/external-access.png)
+![서울 EC2 공개 포트폴리오](docs/evidence/site.png)
 
-## 계정과 비용 사전 확인
+## 진행 과정과 확인한 내용
 
-1. 학습자 본인 명의의 AWS 계정을 사용합니다. 다른 사람의 키를 받거나 루트 계정으로 실습하지 않습니다. 이 무료 프로젝트는 서울 리전 사용이 차단되어 학습자 요청에 따라 시드니에서 진행했습니다. [AWS 프로젝트 리전 안내](https://docs.aws.amazon.com/accounts/latest/reference/project-regions.html)
-2. 계정 유형·생성일에 따른 Free Tier 또는 크레딧 상태를 **Billing 콘솔에서 직접** 확인합니다. 신규 계정의 무료 혜택과 대상 인스턴스는 계정 조건에 따라 다릅니다. [AWS EC2 Free Tier 안내](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-free-tier-usage.html)
-3. 공개 IPv4는 사용 시간에 따른 비용이 생길 수 있습니다. Free Tier 포함 여부도 계정에서 확인합니다. [AWS VPC 퍼블릭 IPv4 안내](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-ip-addressing.html)
-4. `./scripts/bootstrap-iam.sh`로 제한된 CloudFormation 실행 역할을, `./scripts/bootstrap-operator.sh`로 시드니 CloudFormation·EC2 조회·특정 역할 전달만 허용한 실습 역할을 만듭니다. 배포는 `b3-operator` 역할 세션으로 실행했습니다. [`docs/iam-plan.md`](docs/iam-plan.md)에 실제 범위와 한계를 기록했습니다.
-5. 시드니 리전에서 EC2 키페어를 만들고 개인 키 `.pem`을 로컬의 안전한 위치에 보관합니다. Git에 올리지 않습니다. 본인 인터넷의 **현재 공인 IPv4/32**를 확인합니다.
-6. AWS CLI v2, SSH, curl을 설치하고 CLI에 임시 자격 증명 프로필을 설정합니다. 이 작업 Mac에는 AWS CLI v2와 `b3-lab` 임시 프로필을 설정하고 `sts get-caller-identity`를 확인했습니다. [AWS CLI 인증 방법](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-authentication.html)
+1. 새 AWS 계정의 Free 플랜 상태와 서울 리전 사용 가능 여부를 확인했습니다. [`free-plan.png`](docs/evidence/free-plan.png)에 계정 ID를 가린 조회 결과를 남겼습니다.
+2. 별도 IAM 사용자 `B3_1Learner`에 과제에 필요한 EC2/VPC·CloudFormation 권한을 연결했습니다. 관리형 정책 연결 목록이 비어 있고 인라인 정책에 `AdministratorAccess`가 없음을 [정책 캡처](docs/evidence/iam.png)와 [원본](docs/evidence/iam-attached-policies.json)으로 확인했습니다.
+3. 서울 리전에 VPC, Public Subnet, Internet Gateway, 기본 라우트, 보안 그룹, EC2 한 대를 생성했습니다. [네트워크](docs/evidence/network.png)와 [보안 그룹](docs/evidence/security-group.png) 캡처의 리소스 ID를 실제 조회 결과와 대조했습니다.
+4. 처음 배포할 때 EC2의 Nginx 준비가 끝나기 전에 reload가 실행돼 실패했습니다. 로그를 확인하고 서비스 활성 상태를 기다리도록 스크립트를 고친 뒤 재실행했습니다. 자세한 과정은 [트러블슈팅 보고서](docs/troubleshooting.md)에 있습니다.
+5. SSH로 접속해 Nginx와 `localhost` HTTP 200, 외부 HTTPS 아웃바운드 200을 확인했습니다. 외부에서는 `/health`의 HTTP 200·`OK`와 포트폴리오 페이지가 열리는 모습을 캡처했습니다. [서버 검증 캡처](docs/evidence/server-verification.png)를 함께 봐 주세요.
+6. 캡처를 저장한 뒤 스택을 삭제했습니다. EC2 종료, EBS·네트워크 리소스 삭제, EIP 0개를 [정리 캡처](docs/evidence/cleanup.png)와 [체크리스트](docs/cleanup-checklist.md)에 남겼습니다.
+
+## 평가 문항에 대한 설명
+
+**외부 요청 흐름:** 인터넷 사용자의 HTTP 요청은 EC2의 공인 IP를 통해 VPC의 Internet Gateway와 Public Subnet 경로를 지나 EC2에 도달합니다. 보안 그룹이 TCP 80을 허용하고 Nginx가 `/health`에 `OK`를 반환합니다. 서브넷 라우트 테이블의 `0.0.0.0/0 → IGW`는 외부로 향하는 응답과 아웃바운드 통신에 필요합니다.
+
+**SG와 IAM:** 보안 그룹은 포트·소스 IP로 네트워크 접근을 제어합니다. 이번 실습은 HTTP 80만 전체 공개하고 SSH 22는 개인 IP `/32`로 제한했습니다. IAM은 AWS API를 호출할 수 있는 사용자 권한을 제어합니다. 그래서 EC2 배포용 사용자에 관리자 권한이나 과제와 무관한 S3·RDS 권한을 주지 않았습니다.
+
+**오류 해결과 비용:** 배포 실패 때는 오류 문구와 `journalctl`을 먼저 확인해 Nginx 시작 전 reload가 원인임을 찾았습니다. 과금 위험은 실행 중 EC2, EBS, 공인 IPv4 등에서 생길 수 있어 검증 직후 스택을 삭제하고 각 리소스를 다시 조회했습니다. 평가 문항별 자세한 답변은 [노션 제출용 문서](NOTION_SUBMISSION.md)에 정리했습니다.
+
+![실제 서울 VPC 및 인터넷 경로 조회](docs/evidence/network.png)
+![실제 서울 보안 그룹 인바운드 조회](docs/evidence/security-group.png)
+![실제 서울 EC2 및 EBS 조회](docs/evidence/instance-and-server.png)
+![실제 서버 및 외부 응답 검증](docs/evidence/server-verification.png)
+![실습 IAM 정책 조회](docs/evidence/iam.png)
+![실습 리소스 삭제 후 조회](docs/evidence/cleanup.png)
 
 ## 설계
 
-```text
-Internet user ─ HTTP :80 ─ Internet Gateway
-                                  │
-                        Public route table
-                        0.0.0.0/0 → IGW
-                                  │
-VPC 10.0.0.0/16 ─ Public Subnet 10.0.1.0/24
-                                  │
-                    Security Group: HTTP any / SSH my IP
-                                  │
-                    EC2 (Nginx + B1_1 portfolio)
-```
+![B3_1 서울 리전 아키텍처](docs/architecture.png)
 
-CloudFormation은 VPC 1개, Public Subnet 1개, IGW 1개, `0.0.0.0/0` 라우트와 연관, EC2 1대를 만듭니다. EC2에는 공인 IPv4를 할당합니다. 보안 그룹 인바운드는 HTTP 80을 전체 인터넷에, SSH 22를 학습자 IP `/32`에만 허용합니다. 전체 포트 개방 규칙은 없습니다. EBS 루트 볼륨은 암호화한 8GiB gp3이며 인스턴스 삭제 시 함께 삭제하도록 설정합니다. Elastic IP, NAT Gateway, Load Balancer, RDS는 생성하지 않습니다.
+| 구성 | 값과 역할 |
+| --- | --- |
+| VPC / Public Subnet | `10.0.0.0/16` / `10.0.1.0/24`, 하나씩 생성 |
+| Internet Gateway | VPC에 연결해 인터넷 통신 경로 제공 |
+| Public Route Table | `0.0.0.0/0 → IGW`, Public Subnet에 연결 |
+| EC2 | `t3.micro`, Amazon Linux 2023, 공인 IPv4, Nginx, 암호화된 8 GiB gp3 EBS |
+| Security Group 인바운드 | HTTP 80은 `0.0.0.0/0`, SSH 22는 현재 학습자 공인 IPv4 `/32`만 |
+| IAM | 과제용 사용자 `B3_1Learner`에 서울 EC2/VPC·CloudFormation·공용 AMI 조회만 허용 |
+| 과금 회피 | EIP·NAT Gateway·Load Balancer·RDS는 생성하지 않음; 검증 후 스택·볼륨 삭제 |
 
-## 배포 및 검증
+## 계정과 비용 확인
 
-아래 명령은 **시드니 접근 가능한 AWS 계정과 제한된 IAM 역할을 준비한 후** `B3_1` 디렉터리에서 실행합니다. `ROLE_ARN`은 관리자가 만든 전용 CloudFormation 실행 역할입니다. `MY_IP/32`에는 현재 본인 공인 IP를 넣습니다. 실습 후 역할과 키페어를 삭제했으므로 재실행할 때는 먼저 아래 역할·키페어를 다시 준비해야 합니다.
+1. 서울 리전 접근이 가능한 **AWS 고급 가입(advanced) 계정** 또는 기존 일반 AWS 계정을 사용합니다. 새 방식의 프로젝트는 선택 리전이 제한될 수 있습니다. [AWS 가입 방식 비교](https://docs.aws.amazon.com/accounts/latest/reference/sign-up-for-aws.html)
+2. 가입 화면에서 **Free account plan**이 제공되고 실제 선택되었는지, Billing에서 남은 크레딧·만료일을 확인합니다. 기존 AWS 고객은 Free 플랜 대상이 아닐 수 있습니다. Free 플랜은 사용 중 청구가 발생하지 않는다고 AWS가 안내하지만, 계정 상태를 직접 확인해야 합니다. [AWS Free 플랜](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/free-tier-plans.html)
+3. 비용 알림을 위해 Zero spend budget을 설정합니다. **예산 알림은 과금 차단 장치가 아니므로** 아래 리소스 정리가 필수입니다. [AWS 예산 템플릿](https://docs.aws.amazon.com/cost-management/latest/userguide/budget-templates.html)
+4. 신규 계정의 첫 IAM 사용자 생성은 계정 소유자의 **초기 설정**입니다. EC2 배포·검증·정리는 전용 비루트 IAM 사용자로만 수행합니다. 그 사용자에 `AdministratorAccess`를 연결하지 않습니다.
+5. SSH 개인 키는 Git에 넣지 않습니다. EC2 Free Tier 대상 인스턴스와 AMI를 계정에서 확인합니다. [EC2 Free Tier 확인](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-free-tier-usage.html)
+
+## 재현 방법
+
+아래 명령은 `B3_1` 디렉터리에서 실행합니다. 먼저 계정 소유자가 같은 계정 안에 `B3_1Learner` IAM 사용자 1명을 만들고 [`infrastructure/iam/learner-permissions.json`](infrastructure/iam/learner-permissions.json)을 인라인 정책으로 연결합니다. 콘솔 암호를 설정한 뒤 이 사용자의 계정 ID·이름·암호로 로그인합니다. 실제 인프라 배포는 해당 사용자 프로필로만 합니다. 별도 CloudFormation 서비스 역할 방식은 [`scripts/bootstrap-iam.sh`](scripts/bootstrap-iam.sh)와 [`scripts/bootstrap-operator.sh`](scripts/bootstrap-operator.sh)에 선택적으로 남겨 두었습니다.
 
 ```bash
-./scripts/bootstrap-iam.sh b3-lab
-./scripts/bootstrap-operator.sh b3-lab
-aws configure set role_arn arn:aws:iam::ACCOUNT_ID:role/B3_1OperatorRole --profile b3-operator
-aws configure set source_profile b3-lab --profile b3-operator
-aws configure set region ap-southeast-2 --profile b3-operator
+aws login --profile b3-learner --region ap-northeast-2
+aws sts get-caller-identity --profile b3-learner
 
-# 시드니 EC2 키페어는 별도로 생성하고 개인 키를 Git 밖에 보관
-./scripts/deploy.sh \
-  --profile b3-operator \
-  --key-name B3_1-20261021 \
-  --key-file /안전한/경로/B3_1-20261021.pem \
-  --ssh-cidr MY_IP/32 \
-  --role-arn arn:aws:iam::ACCOUNT_ID:role/B3_1CloudFormationRole
+# EC2 키페어는 서울 리전에 한 개 만들고 개인 키를 Git 밖에 보관한다.
+./scripts/deploy.sh --profile b3-learner \
+  --key-name B3_1-KEY --key-file /안전한/경로/B3_1-KEY.pem \
+  --ssh-cidr MY_PUBLIC_IPV4/32
 
-./scripts/verify.sh b3-operator /안전한/경로/B3_1-20261021.pem
+./scripts/verify.sh b3-learner /안전한/경로/B3_1-KEY.pem
 ```
 
-배포 스크립트는 루트 자격 증명을 거절합니다. CloudFormation으로 인프라를 만든 뒤 SSH로 `site/`의 정적 파일을 Nginx 문서 루트에 복사합니다. `/health`가 `OK`인지 확인합니다. 검증 스크립트는 외부 `/health`, 인스턴스 내부 `localhost`, 외부 HTTPS 아웃바운드 결과를 `docs/evidence/verification.txt`에 저장합니다. AWS CloudShell의 실제 외부 호출 화면을 `docs/evidence/external-access.png`에 캡처했습니다.
+CloudFormation은 [`infrastructure/cloudformation.yaml`](infrastructure/cloudformation.yaml)에 정의되어 있습니다. 배포 스크립트는 Nginx 문서 루트에 [`site/`](site/)를 복사하고 `/health` 응답을 확인합니다. 검증 스크립트는 외부 `/health`, 인스턴스 내부 `curl http://localhost`, 아웃바운드 `curl https://example.com`을 실행합니다.
 
 ## 실습 종료 후 정리
 
-접속 증빙을 확보하고 실습을 종료할 때 아래를 실행합니다. 스택 삭제 후 [`docs/cleanup-checklist.md`](docs/cleanup-checklist.md)에 실제 리소스 ID와 확인 결과를 적습니다.
+외부 접속 및 구성 캡처를 저장한 다음 실행합니다.
 
 ```bash
-./scripts/cleanup.sh b3-operator
+./scripts/cleanup.sh b3-learner
 ```
 
-CloudFormation 스택이 삭제되면 인스턴스와 포함된 네트워크 리소스도 함께 삭제되도록 설계했습니다. 삭제 실패 시 스택 Events에서 원인을 확인해야 합니다. 삭제 후 포트폴리오의 EC2 URL은 더 이상 접속할 수 없습니다. 계속 공개할 사이트가 필요하면 별도의 상시 호스팅과 비용 계획이 필요합니다.
+CloudFormation 삭제 완료를 기다리고 EC2, EBS, Elastic IP, IGW, Subnet, Route Table, SG, VPC를 조회해 [`docs/cleanup-checklist.md`](docs/cleanup-checklist.md)에 실제 ID와 결과를 적습니다. 생성했다면 EC2 키페어도 삭제합니다. IAM 사용자는 과제 제출·감사에 필요한 기간이 지나면 계정 관리자가 삭제합니다. 이 프로젝트와 무관한 계정 리소스는 건드리지 않습니다.
 
-이 실습에서는 스택 삭제 뒤 EC2 키페어와 두 IAM 역할도 별도로 삭제하고 로컬 `.pem`을 지웠습니다. `cleanup.sh`는 스택만 삭제하므로 키페어·IAM 역할은 [`docs/cleanup-checklist.md`](docs/cleanup-checklist.md)에 따라 확인해야 합니다.
+## 과거 시드니 실습
 
-## 확인한 것과 남은 요건
-
-- CloudFormation YAML 구문 파싱
-- `bash -n`으로 스크립트 구문 확인
-- `dot`으로 아키텍처 PNG 생성 및 육안 확인
-- 복사한 `site/`의 HTML/CSS/JS 파일 존재 확인
-- AWS CLI 임시 인증과 `sts get-caller-identity` 성공
-- 시드니 CloudFormation 스택 `CREATE_COMPLETE`, EC2 `running`, 외부 첫 화면 HTTP 200
-- 외부 `/health` HTTP 200 / `OK`, 서버 내부 `localhost` HTTP 200, 인터넷 아웃바운드 HTTPS 200
-- 보안 그룹의 HTTP 80 `0.0.0.0/0`, SSH 22 개인 IP `/32` 확인
-- Public Subnet에 `0.0.0.0/0 → Internet Gateway` 활성 라우트 확인
-- 서울 리전 API는 이 계정의 SCP에서 거부됨. **과제의 서울 리전 조건은 미충족**
-
-과제 제출 시 리전 차이를 숨기지 마세요. 서울 리전 사용이 가능한 계정으로 다시 배포하거나, 담당자에게 시드니 실습 허용을 받아야 전체 요구사항을 충족합니다. [AWS 프로젝트 리전](https://docs.aws.amazon.com/accounts/latest/reference/project-regions.html)
+2026-10-21 시드니(`ap-southeast-2`)에서 HTTP·SSH·라우팅·정리를 검증한 과거 자료는 [`docs/archive/sydney-2026-10-21/README.md`](docs/archive/sydney-2026-10-21/README.md)에 있습니다. **이 자료는 서울 리전 요구사항의 증거가 아닙니다.**

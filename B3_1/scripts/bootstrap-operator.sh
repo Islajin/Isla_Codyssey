@@ -3,15 +3,26 @@
 set -euo pipefail
 
 admin_profile="${1:?Usage: ./scripts/bootstrap-operator.sh ADMIN_PROFILE}"
-region_name="ap-southeast-2"
+region_name="ap-northeast-2"
 role_name="B3_1OperatorRole"
 account_id="$(aws sts get-caller-identity --profile "$admin_profile" --query Account --output text)"
 caller_arn="$(aws sts get-caller-identity --profile "$admin_profile" --query Arn --output text)"
-owner_role_arn="$(aws iam get-role --profile "$admin_profile" --role-name AccountFullAccessRole --query Role.Arn --output text)"
 if [[ "$caller_arn" == *:root ]]; then
   echo 'Do not use root to create the lab role.' >&2
   exit 2
 fi
+case "$caller_arn" in
+  arn:aws:iam::*:user/*)
+    owner_role_arn="$caller_arn" ;;
+  arn:aws:sts::*:assumed-role/*)
+    source_role_name="${caller_arn#*:assumed-role/}"
+    source_role_name="${source_role_name%%/*}"
+    owner_role_arn="$(aws iam get-role --profile "$admin_profile" \
+      --role-name "$source_role_name" --query Role.Arn --output text)" ;;
+  *)
+    echo "Unsupported IAM identity: $caller_arn" >&2
+    exit 2 ;;
+esac
 if aws iam get-role --profile "$admin_profile" --role-name "$role_name" >/dev/null 2>&1; then
   echo "Role $role_name already exists. Review its trust and permissions before reuse." >&2
   exit 2
@@ -35,7 +46,7 @@ cat >"$policy_file" <<EOF
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "ManageOnlyLabCloudFormationInSydney",
+      "Sid": "ManageOnlyLabCloudFormationInSeoul",
       "Effect": "Allow",
       "Action": [
         "cloudformation:ValidateTemplate",
@@ -62,7 +73,7 @@ cat >"$policy_file" <<EOF
       "Condition": {"StringEquals": {"iam:PassedToService": "cloudformation.amazonaws.com"}}
     },
     {
-      "Sid": "InspectOnlySydneyEC2Resources",
+      "Sid": "InspectOnlySeoulEC2Resources",
       "Effect": "Allow",
       "Action": ["ec2:DescribeInstances", "ec2:DescribeVolumes", "ec2:DescribeVpcs", "ec2:DescribeSubnets", "ec2:DescribeRouteTables", "ec2:DescribeSecurityGroups", "ec2:DescribeInternetGateways", "ec2:DescribeAddresses"],
       "Resource": "*",
@@ -76,6 +87,6 @@ aws iam create-role --profile "$admin_profile" --role-name "$role_name" \
   --assume-role-policy-document "file://$trust_file" \
   --tags Key=Project,Value=B3_1 >/dev/null
 aws iam put-role-policy --profile "$admin_profile" --role-name "$role_name" \
-  --policy-name B3_1OperatorSydneyOnly --policy-document "file://$policy_file"
+  --policy-name B3_1OperatorSeoulOnly --policy-document "file://$policy_file"
 aws iam get-role --profile "$admin_profile" --role-name "$role_name" \
   --query Role.Arn --output text

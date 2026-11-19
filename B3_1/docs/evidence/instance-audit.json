@@ -1,0 +1,13 @@
+{
+  "instanceId": "i-09392c70bef4969d4",
+  "state": "running",
+  "instanceType": "t3.micro",
+  "publicIp": "43.201.24.70",
+  "subnetId": "subnet-0429c7625e75e9742",
+  "securityGroupId": "sg-08056ea441630f180",
+  "rootEbsVolumeId": "vol-04be68ddecff6a2fd",
+  "rootEbsGiB": 8,
+  "rootEbsType": "gp3",
+  "rootEbsEncrypted": true,
+  "rootEbsDeleteOnTermination": true
+}

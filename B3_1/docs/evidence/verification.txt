@@ -1,16 +1,16 @@
-Verified at: 2026-10-21 04:16:16 UTC
-Region: ap-southeast-2
-Instance: i-06ec8cc985b2829f4
-Public URL: http://15.134.214.202/
+Verified at: 2026-11-19 23:43:34 UTC
+Region: ap-northeast-2
+Instance: i-09392c70bef4969d4
+Public URL: http://43.201.24.70/
 --- External health check ---
 HTTP/1.1 200 OK
-Server: nginx/1.30.5
-Date: Wed, 21 Oct 2026 04:16:17 GMT
+Server: nginx/1.30.7
+Date: Thu, 19 Nov 2026 23:43:34 GMT
 Content-Type: application/octet-stream
 Content-Length: 3
-Last-Modified: Wed, 21 Oct 2026 04:15:50 GMT
+Last-Modified: Thu, 19 Nov 2026 23:42:22 GMT
 Connection: keep-alive
-ETag: "6ad83c76-3"
+ETag: "6aff895e-3"
 Accept-Ranges: bytes
 
 OK

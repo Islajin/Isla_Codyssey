@@ -1,0 +1,17 @@
+{
+  "securityGroupId": "sg-08056ea441630f180",
+  "inboundRules": [
+    {
+      "protocol": "tcp",
+      "port": 80,
+      "source": "0.0.0.0/0"
+    },
+    {
+      "protocol": "tcp",
+      "port": 22,
+      "source": "learner current IPv4/32 (redacted)",
+      "matchesLocalIp": true
+    }
+  ],
+  "allPortsOpenToInternet": false
+}

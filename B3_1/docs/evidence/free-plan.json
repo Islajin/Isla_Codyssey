@@ -1,0 +1,9 @@
+{
+  "accountPlanType": "FREE",
+  "accountPlanStatus": "ACTIVE",
+  "accountPlanRemainingCredits": {
+    "amount": 100.0,
+    "unit": "USD"
+  },
+  "accountPlanExpirationDate": "2027-05-19T23:25:34.813000+00:00"
+}

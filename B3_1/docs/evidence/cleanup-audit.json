@@ -1,0 +1,17 @@
+{
+  "checkedAtUtc": "2026-11-19 23:50:53 UTC",
+  "region": "ap-northeast-2",
+  "results": {
+    "stack": "deleted; CloudFormation waiter stack-delete-complete succeeded",
+    "instance": "terminated",
+    "rootEbs": "not found",
+    "elasticIps": "0 allocated in ap-northeast-2",
+    "internetGateway": "not found",
+    "subnet": "not found",
+    "routeTable": "not found",
+    "securityGroup": "not found",
+    "vpc": "not found",
+    "natGateways": "0 with Project=B3_1 tag",
+    "keyPair": "not found after delete-key-pair"
+  }
+}
