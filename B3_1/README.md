@@ -88,6 +88,20 @@ CloudFormation은 [`infrastructure/cloudformation.yaml`](infrastructure/cloudfor
 
 CloudFormation 삭제 완료를 기다리고 EC2, EBS, Elastic IP, IGW, Subnet, Route Table, SG, VPC를 조회해 [`docs/cleanup-checklist.md`](docs/cleanup-checklist.md)에 실제 ID와 결과를 적습니다. 생성했다면 EC2 키페어도 삭제합니다. IAM 사용자는 과제 제출·감사에 필요한 기간이 지나면 계정 관리자가 삭제합니다. 이 프로젝트와 무관한 계정 리소스는 건드리지 않습니다.
 
+## 먼저 이해할 전체 흐름
+
+이번 실습은 포트폴리오 파일을 **서울 리전의 EC2 가상 컴퓨터**에 올리고, 그 컴퓨터의 Nginx가 인터넷 요청에 응답하도록 만든 것입니다. EC2가 놓인 VPC는 AWS 안의 네트워크이고, Public Subnet은 그 안에서 인터넷 경로가 연결된 구역입니다. Internet Gateway와 Route Table이 인터넷 통신 경로를 만들고, EC2의 공인 IP가 외부에서 찾아올 주소가 됩니다.
+
+<img src="docs/architecture.png" alt="서울 리전 웹 서비스의 VPC, 서브넷, 인터넷 경로와 EC2 구성" width="520">
+
+**접속과 관리에는 서로 다른 규칙이 적용됩니다.** 보안 그룹(SG)은 방문자의 HTTP 80번 접속을 허용하고, 서버 관리용 SSH 22번은 학습자 IP 한 개로 제한합니다. IAM은 네트워크 접속이 아니라 `B3_1Learner` 사용자가 AWS에서 EC2·VPC를 만들거나 삭제할 수 있는 권한을 정합니다. 그래서 전체 관리자 권한 대신 실습에 필요한 작업만 허용했습니다.
+
+<img src="docs/evidence/security-group.png" alt="HTTP 80과 SSH 22만 허용한 보안 그룹 규칙" width="680">
+
+**동작은 외부 요청으로 확인했습니다.** 당시 공인 IP의 `/health`에 GET 요청을 보내 HTTP 200과 본문 `OK`를 받았습니다. 서버 내부 응답과 인터넷 아웃바운드도 각각 확인했습니다. 배포 중에는 Nginx가 시작되기 전 `reload`가 실행돼 실패했지만, 로그로 원인을 찾고 준비 상태를 기다리도록 고쳤습니다. 검증 사진을 저장한 뒤 EC2와 관련 리소스를 삭제했으므로 현재 주소는 열리지 않습니다.
+
+<img src="docs/evidence/external-access.png" alt="외부 GET health 요청의 HTTP 200과 OK 응답" width="680">
+
 ---
 
 ## 평가 문항 요약과 증빙
