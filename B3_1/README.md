@@ -33,9 +33,6 @@
 | HTTP 응답 | `200 OK`, 본문 `OK` |
 | 외부 화면 캡처 | [`external-access.png`](docs/evidence/external-access.png) |
 
-![서울 EC2 외부 헬스 체크](docs/evidence/external-access.png)
-![배포한 포트폴리오 소스의 로컬 화면 미리보기](docs/evidence/site-preview.png)
-
 ## 진행 과정과 확인한 내용
 
 1. 새 AWS 계정의 Free 플랜 상태와 서울 리전 사용 가능 여부를 확인했습니다. [`free-plan.png`](docs/evidence/free-plan.png)에 계정 ID를 가린 조회 결과를 남겼습니다.
@@ -45,24 +42,9 @@
 5. SSH로 접속해 Nginx와 `localhost` HTTP 200, 외부 HTTPS 아웃바운드 200을 확인했습니다. 외부에서는 `/health`의 HTTP 200·`OK`를 캡처했습니다. 포트폴리오 전체 화면은 배포한 소스를 로컬에서 다시 렌더링한 참고 이미지이며, 외부 접속 증빙과 구분합니다. [서버 검증 캡처](docs/evidence/server-verification.png)를 함께 봐 주세요.
 6. 캡처를 저장한 뒤 스택을 삭제했습니다. EC2 종료, EBS·네트워크 리소스 삭제, EIP 0개를 [정리 캡처](docs/evidence/cleanup.png)와 [체크리스트](docs/cleanup-checklist.md)에 남겼습니다.
 
-## 평가 문항에 대한 설명
-
-**외부 요청 흐름:** 인터넷 사용자의 HTTP 요청은 EC2의 공인 IP를 통해 VPC의 Internet Gateway와 Public Subnet 경로를 지나 EC2에 도달합니다. 보안 그룹이 TCP 80을 허용하고 Nginx가 `/health`에 `OK`를 반환합니다. 서브넷 라우트 테이블의 `0.0.0.0/0 → IGW`는 외부로 향하는 응답과 아웃바운드 통신에 필요합니다.
-
-**SG와 IAM:** 보안 그룹은 포트·소스 IP로 네트워크 접근을 제어합니다. 이번 실습은 HTTP 80만 전체 공개하고 SSH 22는 개인 IP `/32`로 제한했습니다. IAM은 AWS API를 호출할 수 있는 사용자 권한을 제어합니다. 그래서 EC2 배포용 사용자에 관리자 권한이나 과제와 무관한 S3·RDS 권한을 주지 않았습니다.
-
-**오류 해결과 비용:** 배포 실패 때는 오류 문구와 `journalctl`을 먼저 확인해 Nginx 시작 전 reload가 원인임을 찾았습니다. 과금 위험은 실행 중 EC2, EBS, 공인 IPv4 등에서 생길 수 있어 검증 직후 스택을 삭제하고 각 리소스를 다시 조회했습니다. 평가 문항별 자세한 답변은 [노션 제출용 문서](NOTION_SUBMISSION.md)에 정리했습니다.
-
-![실제 서울 VPC 및 인터넷 경로 조회](docs/evidence/network.png)
-![실제 서울 보안 그룹 인바운드 조회](docs/evidence/security-group.png)
-![실제 서울 EC2 및 EBS 조회](docs/evidence/instance-and-server.png)
-![실제 서버 및 외부 응답 검증](docs/evidence/server-verification.png)
-![실습 IAM 정책 조회](docs/evidence/iam.png)
-![실습 리소스 삭제 후 조회](docs/evidence/cleanup.png)
-
 ## 설계
 
-![B3_1 서울 리전 아키텍처](docs/architecture.png)
+[아키텍처 다이어그램](docs/architecture.png)
 
 | 구성 | 값과 역할 |
 | --- | --- |
@@ -112,84 +94,79 @@ CloudFormation 삭제 완료를 기다리고 EC2, EBS, Elastic IP, IGW, Subnet, 
 
 ---
 
-## 평가 문항별 설명과 캡처
+## 평가 문항 요약과 증빙
 
-### 평가 항목 1 — 요구한 구성이 실제로 만들어지고 동작했는가?
+### 항목 1. 실제 구성과 동작
 
-**1. VPC·Public Subnet·IGW·Route Table은 어떻게 구성했나?** 서울 리전(`ap-northeast-2`)에 VPC `10.0.0.0/16`과 그 안의 Public Subnet `10.0.1.0/24`를 하나씩 만들었습니다. Internet Gateway(IGW)를 VPC에 연결하고, Public Subnet에 연결된 Route Table에 `0.0.0.0/0 → IGW` 경로를 넣었습니다. VPC는 AWS 안의 네트워크 범위, Subnet은 그 안의 작은 주소 구역, IGW는 인터넷 연결 지점, Route Table은 트래픽의 목적지에 따라 보낼 곳을 정하는 표입니다. 아래 그림은 구성 관계를, 그다음 사진은 `attached`, `active`, `associated` 값을 실제 조회한 결과를 보여줍니다.
+- **네트워크:** 서울 리전에 VPC와 Public Subnet을 만들고, Internet Gateway와 기본 경로(`0.0.0.0/0 → IGW`)를 연결했습니다.
+- **서버:** Public Subnet의 EC2 한 대에서 Nginx를 실행했습니다. SSH로 접속해 파일을 배포했고, EC2 내부 `localhost` 요청에서 HTTP 200을 확인했습니다.
+- **접근 제한:** HTTP 80은 누구나 접속할 수 있고, SSH 22는 학습자 공인 IP 한 개(`/32`)에서만 접속할 수 있게 했습니다.
+- **외부 검증:** 방식 B를 선택해 `GET http://43.201.24.70/health`에서 HTTP 200과 본문 `OK`를 확인했습니다. 이 주소는 리소스 삭제 후 비활성 상태입니다.
+- **정리:** 검증 후 EC2를 종료하고 EBS·IGW·VPC 등 실습 리소스 삭제를 조회로 확인했습니다. EIP는 생성하지 않았습니다.
 
-![서울 리전 VPC·Subnet·IGW·Route Table·EC2 설계](docs/architecture.png)
+### 항목 2. 구성한 이유
 
-![실제 서울 네트워크 조회: VPC CIDR, IGW 연결, 기본 경로, 서브넷 연결](docs/evidence/network.png)
+- **통신 흐름:** 외부 요청은 EC2의 공인 IP로 들어오고, VPC의 IGW·Public Subnet 연결과 보안 그룹의 80번 허용을 거쳐 Nginx가 응답합니다.
+- **포트 최소화:** 방문자에게는 HTTP 80만, 관리자에게는 지정된 IP의 SSH 22만 필요했습니다. DB 포트와 전체 포트 공개 규칙은 만들지 않았습니다.
+- **방식 B 선택:** `/health`는 화면 디자인과 관계없이 상태 코드와 고정 응답을 확인할 수 있어 외부 접속 증빙에 적합합니다.
+- **리소스 추적:** `b3-1` 스택, `Project=B3_1` 태그, 리소스 ID와 정리 체크리스트로 생성·삭제 대상을 구별했습니다.
 
-**사진에서 짚을 값:** `region: ap-northeast-2`는 서울, `vpcCidr`와 `publicSubnetCidr`는 두 주소 범위, `internetGatewayAttachedToVpc: true`는 IGW 연결, `defaultRoute: 0.0.0.0/0 -> igw-...`와 `defaultRouteState: active`는 인터넷 기본 경로, `routeTableAssociatedWithPublicSubnet: true`는 해당 경로가 Public Subnet에 적용됐다는 뜻입니다. 이 사진의 `CREATE_COMPLETE`는 **삭제 전 생성 완료 상태**입니다.
+### 항목 3. 핵심 개념과 보안
 
-**2. EC2에 SSH로 접속할 수 있고 웹 서버가 실행됐나?** EC2는 AWS에서 빌린 가상 컴퓨터이고, SSH는 그 컴퓨터에 원격으로 들어가 명령을 실행하는 방법입니다. `t3.micro` EC2 한 대에 Amazon Linux 2023과 Nginx를 사용했습니다. 배포 스크립트가 SSH로 사이트 파일을 복사했고, 검증 스크립트가 SSH를 통해 EC2 안에서 `curl http://localhost/`를 실행해 HTTP 200을 확인했습니다. 외부 응답의 `Server: nginx/1.30.7`도 Nginx가 응답했다는 근거입니다. 별도의 SSH 로그인 화면 사진은 없으므로 **SSH를 통한 검증 명령 성공**을 근거로 설명합니다.
+- **기본 경로:** Public Subnet의 `0.0.0.0/0 → IGW`는 인터넷으로 향하는 트래픽의 경로입니다. EC2 공인 IP와 보안 그룹 허용도 함께 필요합니다.
+- **SG와 IAM:** SG는 EC2의 IP·포트 접속을, IAM은 AWS 리소스 생성·삭제 같은 API 작업을 제어합니다. 실습 IAM 사용자에게 `AdministratorAccess`는 연결하지 않았습니다.
+- **관리 포트 보호:** SSH나 DB 포트를 전 세계에 열면 누구나 접속을 시도할 수 있습니다. SSH는 학습자 IP `/32`로 제한했고 DB는 생성하지 않았습니다.
+- **문제 해결:** Nginx가 시작되기 전에 `reload`가 실행되어 실패했습니다. 로그로 원인을 확인하고 서비스가 준비될 때까지 기다리도록 수정한 뒤 다시 검증했습니다. [트러블슈팅 기록](docs/troubleshooting.md)
 
-![실제 EC2와 8GiB 암호화 EBS 구성](docs/evidence/instance-and-server.png)
+### 항목 4. 상황별 대응
 
-![EC2 내부 localhost, 인터넷 아웃바운드, 외부 HTTP 응답 결과](docs/evidence/server-verification.png)
+아래는 실제로 모두 발생한 장애가 아닌 **평가 질문에 대한 대응 방법**입니다.
 
-**사진에서 짚을 값:** EC2 사진의 `state: running`, `instanceType: t3.micro`, `publicIp`, `subnetId`, `securityGroupId`는 서버의 실행 상태와 위치를 보여줍니다. `rootEbsGiB: 8`, `rootEbsEncrypted: true`, `rootEbsDeleteOnTermination: true`는 서버 디스크 설정입니다. 검증 사진의 `localhost HTTP 200`은 **서버 내부의 웹 응답**, `internet HTTPS 200`은 **EC2에서 외부로 나가는 통신**입니다. 이 둘만으로 외부 사용자의 접속 성공까지 증명하지 않으므로 다음 외부 응답도 확인했습니다.
+- **외부 접속 실패:** 라우트·IGW 연결 → SG 80번 → 공인 IP/DNS → EC2의 Nginx와 로그 순서로 확인합니다.
+- **IAM 권한 부족:** 거부된 API 작업과 사용자·리전을 확인하고, 필요한 작업 권한만 추가합니다.
+- **EC2 두 대로 확장:** 같은 앱을 두 서버에 배포하고 ALB·헬스 체크로 요청을 분산하는 구성을 고려합니다. 이번 실습에는 만들지 않았습니다.
+- **예상 밖 비용:** Billing에서 서비스·리전을 확인하고 EC2, EBS, 공인 IPv4/EIP 등을 추적합니다. 이번에는 리소스를 정리했지만 Billing 최종 청구 화면은 확인하지 못했습니다.
 
-**3. 보안 그룹은 필요한 포트만 열었나?** 인바운드 규칙은 TCP 80과 TCP 22 두 개입니다. HTTP 80은 방문자가 웹사이트를 보도록 `0.0.0.0/0`에서 허용했습니다. SSH 22는 서버 관리용이어서 학습자 공인 IPv4 한 개(`/32`)로 제한했습니다. 모든 포트를 인터넷에 여는 규칙은 만들지 않았습니다. 사진 속 SSH 출발지 IP는 개인정보 보호를 위해 가렸습니다.
+### 사진 모아보기
 
-![HTTP 80 공개와 SSH 22 개인 IP 제한을 확인한 보안 그룹 조회](docs/evidence/security-group.png)
+아래 사진은 설명에 쓰인 실제 조회·검증 결과입니다. AWS CLI 출력을 보기 좋게 표시한 사진에는 원본 JSON·TXT를 함께 보관했습니다. 포트폴리오 이미지는 **로컬 미리보기**이며 외부 접속 증빙은 `/health` 응답입니다.
 
-**사진에서 짚을 값:** 첫 번째 `inboundRules` 항목의 `port: 80`, `source: 0.0.0.0/0`; 두 번째 항목의 `port: 22`, `source: learner current IPv4/32`; 마지막 `allPortsOpenToInternet: false`를 가리킵니다. 여기의 `/32`는 IPv4 주소 **한 개**입니다. `0.0.0.0/0`은 SG에서는 접속을 허용하는 **출발지 전체**이고, Route Table에서는 경로를 찾는 **목적지 전체**입니다.
+<details>
+<summary>네트워크: 아키텍처와 실제 VPC·라우트 조회</summary>
 
-**4. 외부 접속은 어떻게 검증했나?** 방식 **B**를 선택했습니다. 외부 컴퓨터에서 당시 EC2 공인 IP `43.201.24.70`의 `/health`에 GET 요청을 보내 `HTTP/1.1 200 OK`와 응답 본문 `OK`를 확인했습니다. `GET`은 내용을 읽어 달라는 HTTP 요청이고, `200`은 성공 상태 코드, 헤더 아래의 `OK`는 서버가 보낸 실제 내용입니다. 검증 시각은 **2026-11-20 08:43:34 KST**입니다.
+![서울 리전 아키텍처](docs/architecture.png)
 
-![외부에서 GET /health를 호출해 HTTP 200과 본문 OK를 확인한 기록](docs/evidence/external-access.png)
+![서울 VPC와 인터넷 경로 조회](docs/evidence/network.png)
 
-**사진에서 짚을 값:** `Public URL: http://43.201.24.70/`에 `/health`를 붙인 주소가 검증 URL입니다. `--- External health check ---` 아래 `HTTP/1.1 200 OK`와 헤더 다음 줄의 `OK`를 각각 가리킵니다. `external-access.png`와 위 `server-verification.png`는 **같은 `verification.txt` 기록을 다르게 보여주는 사진**입니다. 두 번의 독립적인 외부 실험이라고 말하지 않습니다. 실습 서버를 삭제했으므로 지금은 URL에 접속할 수 없습니다.
+</details>
 
-배포한 포트폴리오가 어떤 화면인지 보여주는 아래 이미지는 **같은 사이트 소스를 로컬에서 렌더링한 참고 자료**입니다. AWS 외부 접속을 증명하는 사진은 바로 위 `/health` 응답입니다.
+<details>
+<summary>서버와 외부 접속: EC2·EBS, 내부·외부 HTTP, 포트폴리오 참고</summary>
 
-![배포한 정적 사이트 소스의 로컬 화면 참고](docs/evidence/site-preview.png)
+![서울 EC2와 EBS 조회](docs/evidence/instance-and-server.png)
 
-**5. 정리 체크리스트의 EC2·EBS·EIP·IGW·VPC는 어떻게 확인했나?** 먼저 접속 증빙을 저장하고 CloudFormation 스택 삭제 완료를 기다렸습니다. 이후 EC2는 `terminated`, EBS 루트 볼륨과 IGW·VPC는 해당 ID 조회 시 `not found`, Elastic IP(EIP)는 서울 리전 할당 목록 0개임을 확인했습니다. Subnet·Route Table·SG와 EC2 키페어도 정리했습니다. EIP는 처음부터 생성하지 않았고, EC2에는 자동 할당 공인 IP가 있었습니다. 자세한 ID와 상태는 [정리 체크리스트](docs/cleanup-checklist.md)에 있습니다.
+![EC2 내부와 외부 접속 검증](docs/evidence/server-verification.png)
 
-![서울 실습 리소스 삭제 후 EC2·EBS·EIP·IGW·VPC 조회](docs/evidence/cleanup.png)
+![외부 GET health 200과 OK](docs/evidence/external-access.png)
 
-### 평가 항목 2 — 왜 이렇게 구성했는지 설명할 수 있는가?
+![배포 소스의 로컬 화면 미리보기](docs/evidence/site-preview.png)
 
-**외부 → IGW → Subnet → EC2의 흐름:** 방문자는 EC2의 **공인 IP**에 HTTP 요청을 보냅니다. IGW가 VPC와 인터넷을 연결하고, Public Subnet에는 IGW를 향하는 기본 경로가 있습니다. EC2에 붙은 SG가 TCP 80을 허용하면 Nginx가 `/health`에 `OK`를 응답합니다. 응답은 다시 외부 사용자에게 돌아갑니다. 아키텍처 그림의 화살표는 이 관계를 요약한 것이고, Route Table과 SG가 실제 컴퓨터처럼 차례로 서 있는 것은 아닙니다.
+</details>
 
-**보안 그룹을 최소화한 기준:** 외부 공개 서비스에 필요한 80번과 관리자 SSH에 필요한 22번만 허용했습니다. DB 포트나 전체 포트 공개는 필요하지 않아 추가하지 않았습니다. 방문자와 관리자에게 필요한 접근 범위가 다르므로 소스 IP도 다르게 지정했습니다.
+<details>
+<summary>보안: 보안 그룹 규칙과 IAM 정책</summary>
 
-**방식 B를 선택한 이유와 구성:** 브라우저의 디자인이나 애니메이션과 무관하게 `/health`의 상태 코드 `200`과 고정 본문 `OK`를 정확하게 확인할 수 있기 때문입니다. EC2 시작 시 User Data가 Nginx를 설치하고 `/usr/share/nginx/html/health` 파일에 `OK`를 썼습니다. 외부 `GET /health`의 성공은 공인 IP·인터넷 경로·SG 80번·Nginx가 함께 동작했다는 근거입니다. 화면 참고 이미지는 이 검증을 대신하지 않습니다.
+![HTTP 80과 SSH 22 보안 그룹 규칙](docs/evidence/security-group.png)
 
-**리소스를 추적하고 정리한 기준:** CloudFormation 스택 이름 `b3-1`, 리소스의 `Project=B3_1` 태그와 `B3_1-...` 이름, 생성 당시 리소스 ID를 기록했습니다. 검증 후 스택을 삭제하고, EC2/EBS/EIP/IGW/VPC를 **삭제 명령의 성공 메시지만 믿지 않고 다시 조회**했습니다. 스택 밖에서 만든 키페어도 따로 삭제했습니다. 계정 소유자가 확인해야 하는 Billing 화면과 남아 있는 IAM 사용자·액세스 키는 [체크리스트](docs/cleanup-checklist.md)에 미완료 항목으로 구분했습니다.
+![실습 IAM 사용자 인라인 정책](docs/evidence/iam.png)
 
-### 평가 항목 3 — 핵심 개념과 보안·문제 해결 원칙을 이해하는가?
+</details>
 
-**Public Subnet에 `0.0.0.0/0 → IGW`가 필요한 이유:** `0.0.0.0/0`은 나머지 모든 IPv4 목적지의 기본 경로입니다. Public Subnet에 연결된 Route Table이 이 목적지를 IGW로 보내야 EC2에서 인터넷으로 나가는 통신과 외부 요청에 대한 응답 경로가 가능합니다. 이 경로만으로 충분하지는 않습니다. IGW의 VPC 연결, EC2 공인 IPv4, SG 허용, 실행 중인 Nginx도 필요합니다. 이 값은 위 `network.png`에서 확인할 수 있습니다.
+<details>
+<summary>비용과 정리: Free 플랜 상태와 삭제 결과</summary>
 
-**SG와 IAM의 책임 차이 및 최소 권한:** SG는 EC2에 들어오고 나가는 **네트워크 IP·포트**를 제어합니다. IAM은 `B3_1Learner`가 EC2·VPC·CloudFormation을 생성·조회·삭제하는 **AWS API 작업**을 제어합니다. 과제 사용자에게 `AdministratorAccess` 관리형 정책을 연결하지 않았고, 인라인 정책은 서울 리전의 필요한 작업 중심으로 작성했습니다. 아래 사진의 `aws:RequestedRegion: ap-northeast-2`가 리전 조건이고, 관리형 정책 목록은 [`[]`](docs/evidence/iam-attached-policies.json)입니다. 다만 일부 작업에는 `Resource: "*"`를 사용했으므로 **모든 리소스를 개별 ARN으로 제한한 정책이라고 주장하지 않습니다.**
+![AWS Free 플랜 활성 상태](docs/evidence/free-plan.png)
 
-![실습 IAM 사용자 인라인 정책과 서울 리전 조건](docs/evidence/iam.png)
+![EC2 EBS EIP IGW VPC 정리 결과](docs/evidence/cleanup.png)
 
-**SSH나 DB 포트를 전체 인터넷에 열지 않는 이유:** `0.0.0.0/0`로 SSH 22나 DB 포트(예: 3306, 5432)를 열면 누구나 로그인 시도나 취약점 탐색을 할 수 있습니다. 이번에는 SSH 22를 학습자 IP `/32`로 제한했습니다. 이 실습에는 DB를 만들지 않았습니다. 실제 DB가 필요한 구조라면 외부에 직접 공개하지 않고 사설 서브넷과 필요한 서버의 SG만 연결하는 방식을 고려합니다.
-
-**왜 `가설 → 검증 → 조치` 순서를 지키나?** 증상만 보고 설정을 여러 개 바꾸면 어느 변경이 원인을 해결했는지 알기 어렵고 보안 규칙을 불필요하게 넓힐 수 있습니다. 이번 실습에서는 첫 배포 때 Nginx `reload`가 실패했습니다. “Nginx 시작 전에 reload가 실행됐을 것”이라는 가설을 세우고, SSH로 접속해 `journalctl`의 `Unit cannot be reloaded because it is inactive`를 확인했습니다. 그런 다음 `deploy.sh`가 Nginx 활성 상태와 `/health` 파일을 기다리도록 바꾸고 동일 검증을 다시 실행했습니다. 증상→가설→검증→조치→결과→재발 방지는 [트러블슈팅 보고서](docs/troubleshooting.md)에 기록했습니다. **실제로 발생한 오류는 네트워크나 IAM 권한 오류가 아니라 배포 순서 오류**였습니다.
-
-### 평가 항목 4 — 상황이 바뀌면 어떻게 점검하고 대응할 것인가?
-
-아래 항목은 **이번 실습에서 모두 발생한 장애가 아니라, 평가 문항의 가상 상황에 대한 대응 순서**입니다.
-
-**외부 접속이 안 될 때:** ① Public Subnet의 Route Table에 `0.0.0.0/0 → IGW`가 있고 IGW가 VPC에 연결됐는지 확인합니다. ② SG의 HTTP 80 소스가 `0.0.0.0/0`인지 확인합니다. ③ 접속 주소가 현재 EC2 공인 IP 또는 올바른 DNS인지, EC2가 `running`인지 확인합니다. ④ SSH로 EC2에 들어가 `curl http://localhost/health`, `systemctl status nginx`, Nginx·cloud-init 로그를 확인합니다. 내부 `localhost`도 실패하면 서버 쪽을 먼저 고치고, 내부만 성공하면 외부 네트워크 설정을 다시 봅니다. 한 번에 한 원인을 확인하고 외부 GET을 재시도합니다.
-
-**IAM 권한이 부족할 때:** 오류 메시지의 거부된 API 작업, 현재 사용자 ARN, 요청 리전과 대상 리소스를 확인합니다. CloudFormation Events와 IAM 정책을 대조해 실제로 필요한 작업만 추가합니다. `AdministratorAccess`를 무작정 붙이면 과제와 무관한 서비스까지 변경할 수 있으므로 최소 권한 원칙에 맞지 않습니다. 위 `iam.png`는 이번 실습의 허용 범위를 설명할 때 함께 보여줍니다.
-
-**트래픽이 늘어 EC2를 2대로 늘려야 한다면:** 현재 구성은 EC2 한 대이므로 서버 장애와 부하 증가에 취약합니다. 두 대로 늘린다면 두 서버에 같은 앱을 배포하고, Application Load Balancer(ALB)와 대상 그룹·헬스 체크를 추가해 요청을 분산하는 구조를 고려합니다. 여러 가용 영역에 서브넷을 두고 Auto Scaling을 적용할 수도 있습니다. **이들은 확장 시 설계 제안이며 이번 실습에서 생성하지 않았습니다.**
-
-**Billing 비용이 예상보다 늘었다면:** Billing의 서비스·리전·사용 유형을 보고 EC2 실행 시간, EBS·스냅샷, 공인 IPv4/EIP, NAT Gateway, ALB, 데이터 전송을 차례로 확인합니다. `Project=B3_1` 태그와 리소스 ID로 실습 대상을 구별해 정리하고 다시 조회합니다. 실제 실습에서는 EC2와 EBS·네트워크 리소스를 삭제했으나 **Billing Dashboard의 최종 청구액 화면은 이 IAM 사용자 권한으로 확인하지 못했습니다.** Free 플랜 활성 상태 조회 사진은 아래에 있지만, 이것이 청구액 0원 증빙은 아닙니다.
-
-![실습 당시 AWS Free 플랜 활성 상태와 남은 크레딧 조회](docs/evidence/free-plan.png)
-
-### 발표에서 마지막으로 구분할 세 가지
-
-1. `localhost HTTP 200`은 **EC2 내부** 웹 서버 확인, `internet HTTPS 200`은 **EC2에서 밖으로** 나가는 통신 확인, 외부 `GET /health`의 `200`·`OK`는 **밖에서 EC2로** 들어오는 통신 확인입니다.
-2. `site-preview.png`는 로컬에서 같은 소스를 띄운 **화면 참고**입니다. 외부 접속 결과라고 말하지 않습니다.
-3. `instance-and-server.png`의 `running`과 `cleanup.png`의 `terminated`는 **서로 다른 시점**입니다. 캡처를 확보한 뒤 리소스를 삭제했기 때문에 지금은 검증 당시 URL이 열리지 않습니다.
+</details>
